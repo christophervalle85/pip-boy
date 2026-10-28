@@ -1,12 +1,17 @@
 # Pip-Boy 3000
 
-## Prepared inventory models and MacBook finishes (v0.10.2)
+## Versioned 3D inventory assets (v0.10.3)
 
-The default inventory now distinguishes **MacBook Air M2 (Midnight)** from **MacBook Air M4 (Silver)**. Existing local save data is migrated without resetting custom items, item counts, cash or quests.
+The six prepared inventory models are now stored directly in this repository under `public/models/inventory/`; **you no longer need to download the ZIP or install the models manually**.
 
-Six inspected and validated 3D assets were prepared as a downloadable ZIP in the ChatGPT conversation: Midnight M2, Silver M4 visual placeholder (using M2 geometry), black textured wallet, unchanged house key, licensed electronic car fob, and the original animated AirPods Pro. The models are **not yet committed to the repository** and the live INV tab still uses its existing icon artwork until an interactive 3D inspector is implemented.
+- **MacBook Air M2 Midnight:** `macbook_air_m2_midnight.glb`
+- **MacBook Air M4 Silver (visual placeholder):** `macbook_air_m4_silver_visual.glb`; this uses the M2 mesh with a silver finish, not authentic M4 geometry.
+- **Black leather wallet:** `wallet_black.glb`
+- **Electronic car fob:** `electronic_car_key.glb`
+- **House key:** `cute_key.glb` (unmodified)
+- **AirPods Pro:** `airpods_pro.glb.gz` (lossless gzip of the original animated GLB). The original `airpods_pro.glb` is automatically reconstructed and SHA-256 checked whenever you run `npm run dev` or `npm run build`.
 
-See [3D inventory asset details, credits and installation instructions](docs/INVENTORY_3D_ASSETS.md) and [the future AirPods interaction plan](docs/FUTURE_3D_INVENTORY.md).
+All original creator credits and CC BY 4.0 source links are documented in [the asset guide](docs/INVENTORY_3D_ASSETS.md). **These files are committed, but the in-device INV tab still uses icons** until we build its interactive 3D inspector. No camera, boot-sequence or save-data changes are introduced here.
 
 ## Direct-to-device startup, tactile hardware and CRT polish (v0.10.1)
 

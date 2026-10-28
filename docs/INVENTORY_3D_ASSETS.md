@@ -1,24 +1,23 @@
 # Inventory 3D model asset pack
 
-## Asset names and current status
+## Files in GitHub and current status
 
-The user-approved GLB package is supplied separately in the conversation as `pipboy_inventory_models_customized.zip`. The model binaries are **not yet committed to GitHub**, and a live 3D inspector is **not yet implemented**. This step updates inventory names and prepares validated custom models, without falsely presenting icons as interactive meshes.
+All six assets are now versioned in `public/models/inventory/`. Five are regular GLB files. The animated AirPods GLB is stored as `airpods_pro.glb.gz` due to GitHub binary-transfer limits, and is **automatically expanded without loss** by `scripts/prepare_inventory_models.mjs` when starting the development server or building for production. No download, ZIP or manual Python installation is required.
 
-| Inventory ID | Desired item | Prepared GLB | Changes |
+| Inventory ID | Item | File in GitHub | Changes |
 | --- | --- | --- | --- |
 | `macbook-1` | MacBook Air M2 / Midnight | `macbook_air_m2_midnight.glb` | Anodized housing and keyboard-deck texture recolored dark blue-gray |
-| `macbook-2` | MacBook Air M4 / Silver | `macbook_air_m4_silver_visual.glb` | Silver housing and keyboard-deck texture; **M2 geometry used as a visual placeholder**, not a physically accurate M4 |
-| `wallet` | Black wallet | `wallet_black.glb` | Leather base-color texture recolored charcoal black; grain, seams, cards remain |
-| `car-keys` | Electronic car fob | `electronic_car_key.glb` | Replacement uploaded GLB, unchanged |
+| `macbook-2` | MacBook Air M4 / Silver | `macbook_air_m4_silver_visual.glb` | Silver housing and keyboard-deck texture; **M2 geometry visual placeholder** |
+| `wallet` | Black leather wallet | `wallet_black.glb` | Leather recolored charcoal black while retaining grain, seams and cards |
+| `car-keys` | Electronic car fob | `electronic_car_key.glb` | Uploaded replacement, unchanged |
 | `house-key` | House key | `cute_key.glb` | Unchanged |
-| `airpods` | AirPods Pro | `airpods_pro.glb` | Unchanged; original animation retained |
+| `airpods` | AirPods Pro | `airpods_pro.glb.gz` → `airpods_pro.glb` at dev/build | **Lossless archive** of original GLB with its animation intact |
 
-## How to install the downloadable assets locally
+### How to use
 
-1. Download and unzip the asset package from the ChatGPT conversation, or keep the ZIP as-is.
-2. From the repository root, run `python3 scripts/install_inventory_models.py /path/to/pipboy_inventory_models_customized.zip`.
-3. This copies the six models to `public/models/inventory/`. Review the models and their licenses before publishing.
-4. The upcoming interactive inspector will lazy-load `/models/inventory/<model-name>.glb` on demand. Do not claim that the live site currently renders these meshes.
+Run `git pull --ff-only origin main` and `npm run dev` as usual. The AirPods restoration runs automatically; its generated `.glb` is Git-ignored, while the original compressed archive is tracked. Running `npm run build` also restores the model before copying the public assets into the production build.
+
+The optional `scripts/install_inventory_models.py` from the earlier version is no longer necessary. The interactive 3D item inspector has not been built yet; these are prepared assets, **not a claim that the current inventory UI renders 3D models**.
 
 ## Attribution and modifications (CC BY 4.0)
 

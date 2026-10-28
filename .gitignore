@@ -5,3 +5,6 @@ dist/
 .env
 .env.*
 !.env.example
+
+# Reconstructed from the versioned lossless AirPods archive on dev/build.
+public/models/inventory/airpods_pro.glb
