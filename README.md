@@ -1,10 +1,10 @@
 # Pip-Boy 3000
 
-## Cinematic 3D startup, tactile hardware and CRT polish (v0.10.0)
+## Direct-to-device startup, tactile hardware and CRT polish (v0.10.1)
 
-This update adds a skippable 3D device introduction that accompanies the existing functional boot diagnostics, improved physical hardware interaction, and configurable display effects.
+The 3D Pip-Boy is displayed immediately, without the unnecessary camera fly-in or separate introduction overlay. Its **existing RobCo screen diagnostics** still run on initial load and on reboot. Physical hardware interactions, camera stabilization, CRT effects, and optional audio are preserved.
 
-- **Startup:** the camera approaches the actual textured GLB from a distant inspection angle over ~2.65 seconds while the RobCo diagnostics run. A visible **SKIP INTRO** control ends the animation and makes the live screen immediately usable. The same intro can be replayed using CONFIG → REBOOT or POWER. Motion is skipped when the browser requests reduced motion.
+- **Startup:** the textured device immediately appears in its normal three-quarter view. Only its built-in CRT boots; CONFIG → REBOOT or POWER restarts that screen without repositioning the 3D camera. The screen's existing SKIP STARTUP control and reduced-motion handling remain available.
 - **Physical controls:** the real exported meshes `knob1`, `knob2`, `knob3`, `RightKnob`, and `light1`–`light4` have small turn/press animations. The left knobs move between tabs, the third handles power, the right tuner cycles radio stations, and the four front buttons select STAT/INV/DATA/MAP. Clicks on the interactive DOM screen continue to work as before. All controls use real GLB geometry, not invented floating knobs.
 - **CRT:** a short phosphor tune-in when switching tabs, a subtle corner vignette and adjustable scanlines. CONFIG → **CRT EFFECTS** cycles OFF / SUBTLE / VIVID; SUBTLE is the default. Reduced motion disables flicker and transitions.
 - **Audio:** optional original synthesized clicks, tuning tones and power/boot chirps. CONFIG → **HARDWARE SOUND** is **OFF by default** and requires an explicit user click to enable. Audio does not start automatically on page load. CRT and audio preferences are saved locally.

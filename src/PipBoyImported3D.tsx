@@ -20,8 +20,6 @@ type Props = {
   powerState: PowerState;
   amber: boolean;
   stabilized: boolean;
-  cinematicCycle: number;
-  introSkipped: boolean;
 };
 
 type HardwarePart = {
@@ -200,21 +198,16 @@ type CameraFlight = {
  * true front-facing close-up of the screen and locks OrbitControls.
  */
 function CameraMotion({
-  stabilized, resetToken, controlsRef, onAnimating, cinematicCycle, introSkipped, powerState,
+  stabilized, resetToken, controlsRef, onAnimating,
 }: {
   stabilized: boolean;
   resetToken: number;
-  powerState: PowerState;
-  cinematicCycle: number;
-  introSkipped: boolean;
   controlsRef: RefObject<OrbitInstance>;
   onAnimating: (value: boolean) => void;
 }) {
   const { camera, size, invalidate } = useThree();
   const initialized = useRef(false);
   const flight = useRef<CameraFlight | null>(null);
-  const lastCinematicCycle = useRef(cinematicCycle);
-  const lastSkipped = useRef(introSkipped);
 
   useEffect(() => {
     if (!(camera instanceof THREE.PerspectiveCamera)) return;
@@ -252,56 +245,8 @@ function CameraMotion({
     const toPosition = stabilized ? closePosition : freePosition;
     const toTarget = stabilized ? screenTarget : freeTarget;
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const firstMount = !initialized.current;
-    const newStartup = cinematicCycle !== lastCinematicCycle.current;
-    const skipRequested = introSkipped && !lastSkipped.current;
-    lastCinematicCycle.current = cinematicCycle;
-    lastSkipped.current = introSkipped;
-
-    // React StrictMode replays mount effects in development. Don't replace an
-    // already-running cinematic with an unintended shorter reset animation.
-    if (flight.current?.duration === 2.65 && !newStartup && !skipRequested && !stabilized) return;
-
-    // The startup flies in from an elevated side-on inspection angle.
-    // Skip and reduced-motion immediately place the device at its normal
-    // interactive viewing position.
-    if ((firstMount || newStartup) && powerState === 'booting' && !introSkipped && !reducedMotion) {
-      const introPosition = new THREE.Vector3(
-        freeDistance * .96,
-        freeTarget.y + freeDistance * .40,
-        freeDistance * 1.57,
-      );
-      const introTarget = new THREE.Vector3(0, .4, 0);
-      camera.position.copy(introPosition);
-      controls.target.copy(introTarget);
-      camera.lookAt(controls.target);
-      camera.updateProjectionMatrix();
-      controls.update();
-      initialized.current = true;
-      flight.current = {
-        fromPosition: introPosition.clone(),
-        fromTarget: introTarget.clone(),
-        toPosition: freePosition,
-        toTarget: freeTarget,
-        elapsed: 0,
-        duration: 2.65,
-      };
-      onAnimating(true);
-      invalidate();
-      return;
-    }
-
-    if (skipRequested) {
-      flight.current = null;
-      camera.position.copy(toPosition);
-      controls.target.copy(toTarget);
-      camera.lookAt(controls.target);
-      controls.update();
-      initialized.current = true;
-      onAnimating(false);
-      invalidate();
-      return;
-    }
+    // Present the 3D device immediately on mount. Only the user-triggered
+    // Stabilize/Unlock action or Reset Camera animates the model.
 
     const alreadyThere = camera.position.distanceTo(toPosition) < 0.015 &&
       controls.target.distanceTo(toTarget) < 0.015;
@@ -330,7 +275,7 @@ function CameraMotion({
     };
     onAnimating(true);
     invalidate();
-  }, [camera, size.width, size.height, stabilized, resetToken, cinematicCycle, introSkipped, powerState, controlsRef, onAnimating, invalidate]);
+  }, [camera, size.width, size.height, stabilized, resetToken, controlsRef, onAnimating, invalidate]);
 
   useFrame((_, delta) => {
     const current = flight.current;
@@ -355,7 +300,7 @@ function CameraMotion({
 }
 
 function LoadedScene({
-  display, activeTab, onTabChange, onRadioNext, onPower, powerState, resetToken, stabilized, cinematicCycle, introSkipped,
+  display, activeTab, onTabChange, onRadioNext, onPower, powerState, resetToken, stabilized,
 }: Props & { resetToken: number }) {
   const controlsRef = useRef<OrbitInstance>(null);
   const [animating, setAnimating] = useState(false);
@@ -396,9 +341,6 @@ function LoadedScene({
         resetToken={resetToken}
         controlsRef={controlsRef}
         onAnimating={setAnimating}
-        cinematicCycle={cinematicCycle}
-        introSkipped={introSkipped}
-        powerState={powerState}
       />
     </Canvas>
   );

@@ -13,7 +13,6 @@ import NYCMap from './NYCMap';
 import InventoryEditor from './InventoryEditor';
 import PipBoyImported3D from './PipBoyImported3D';
 import WandererMascot from './WandererMascot';
-import StartupOverlay from './StartupOverlay';
 import { useDeviceAudio } from './device-audio';
 import './device-effects.css';
 
@@ -125,8 +124,6 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [powerState, setPowerState] = useState<PowerState>('booting');
   const [stabilized, setStabilized] = useState(false);
-  const [cinematicCycle, setCinematicCycle] = useState(0);
-  const [introSkipped, setIntroSkipped] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(() => {
     try { return localStorage.getItem('pipboy-sfx-enabled') === 'true'; } catch { return false; }
   });
@@ -230,19 +227,17 @@ export default function App() {
     inform('INVENTORY ENTRY REMOVED');
   };
 
+  // Reboot only the CRT. Keep the physical 3D model and camera exactly where
+  // the visitor left them—there is no separate cinematic introduction.
   const beginStartup = () => {
     radio.setPlaying(false);
     setSettingsOpen(false);
-    setStabilized(false);
-    setIntroSkipped(false);
-    setCinematicCycle((current) => current + 1);
     setBootStep(0);
     setPowerState('booting');
     playDeviceSound('boot');
   };
   const reboot = () => beginStartup();
-  const finishIntro = () => {
-    setIntroSkipped(true);
+  const finishBoot = () => {
     setPowerState('ready');
     setNotice('ALL SYSTEMS NOMINAL');
   };
@@ -252,7 +247,6 @@ export default function App() {
     } else {
       radio.setPlaying(false);
       setSettingsOpen(false);
-      setIntroSkipped(true);
       setPowerState('off');
       playDeviceSound('power');
     }
@@ -271,7 +265,7 @@ export default function App() {
   const display = (
             <div className={`screen screen-${powerState === 'ready' ? 'online' : powerState}`}>
               <div className="scanlines" aria-hidden="true" />
-              {powerState === 'booting' && <BootScreen step={bootStep} onSkip={finishIntro} />}
+              {powerState === 'booting' && <BootScreen step={bootStep} onSkip={finishBoot} />}
               {powerState === 'off' && <div className="power-off-panel"><Power size={28}/><strong>DISPLAY OFFLINE</strong><p>PRESS THE POWER BUTTON TO RESTART</p><button type="button" onClick={togglePower}><Power size={14}/> POWER ON</button></div>}
               {powerState === 'ready' && (
               <div className="screen-content" key={tab}>
@@ -393,8 +387,6 @@ export default function App() {
           powerState={powerState}
           amber={amber}
           stabilized={stabilized}
-          cinematicCycle={cinematicCycle}
-          introSkipped={introSkipped}
         />
       ) : (
         <main className="three-device-stage imported-device-stage" role="status">
@@ -403,9 +395,6 @@ export default function App() {
             <p>This Pip-Boy requires a browser with WebGL2 enabled to display its interactive 3D model.</p>
           </div>
         </main>
-      )}
-      {powerState === 'booting' && !introSkipped && webglAvailable && (
-        <StartupOverlay step={bootStep} onSkip={finishIntro} />
       )}
 
       {editor && (editor.mode === 'add' || editingItem) && (
