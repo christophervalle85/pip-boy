@@ -10,7 +10,7 @@
 
 **License text:** https://creativecommons.org/licenses/by/4.0/
 
-**Changes to the user's downloaded GLB:** The four embedded texture maps were resized from 4096×4096 to 2048×2048 pixels and converted from PNG to JPEG to reduce download size from approximately 53.5 MiB to 4.1 MiB. Mesh positions, topology, UVs, normals, materials, and node hierarchy are otherwise unchanged. In the web viewer, the original `Screen_low` geometry is hidden to make room for the live application display; the source mesh remains present in the GLB.
+**Changes to the user's downloaded GLB:** The four embedded texture maps were resized from 4096×4096 to 2048×2048 pixels and converted from PNG to JPEG to reduce download size from approximately 53.5 MiB to 4.1 MiB. Mesh positions, topology, UVs, normals, materials, and node hierarchy are otherwise unchanged. In the web viewer, the original curved `Screen_low` geometry remains in place with an opaque dark material so it backs the live application display. The separate double-sided black panel from the early integration was removed, and the interactive overlay was recessed slightly inside the opening and raycast-occluded from rear or blocked views. The source GLB geometry is not modified.
 
 The original model's author attribution and license metadata are also embedded in the GLB. Credit should be retained in any distribution and in the user-visible viewer attribution.
 

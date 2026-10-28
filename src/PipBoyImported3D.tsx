@@ -23,6 +23,25 @@ type Props = {
 
 function Asset({ display, activeTab, onTabChange, onPower }: Pick<Props, 'display'|'activeTab'|'onTabChange'|'onPower'>) {
   const { scene } = useGLTF(MODEL_PATH);
+  const [screenFacing, setScreenFacing] = useState(true);
+  const lastFacing = useRef(true);
+
+  // The CSS-based screen must never show through the back or sides of the
+  // physical model. Keep the DOM mounted (so forms/map state aren't reset),
+  // but hide it past a steep viewing angle.
+  useFrame(({ camera }) => {
+    // World-space center of the GLB's actual screen after its parent transforms.
+    const dx = camera.position.x - 0.336;
+    const dy = camera.position.y - 0.808;
+    const dz = camera.position.z - 1.367;
+    const distance = Math.hypot(dx, dy, dz);
+    const facing = distance > 0 && dz / distance > 0.42;
+    if (facing !== lastFacing.current) {
+      lastFacing.current = facing;
+      setScreenFacing(facing);
+    }
+  });
+
   const model = useMemo(() => {
     const copy = scene.clone(true);
     copy.traverse((child) => {
@@ -80,12 +99,8 @@ function Asset({ display, activeTab, onTabChange, onPower }: Pick<Props, 'displa
           onPointerOver={onHardwareHover}
           onPointerOut={() => { document.body.style.cursor = ''; }}
         />
-        {/* An opaque, double-sided underlay slightly behind the HTML screen
-            ensures no daylight/gaps appear near the curved CRT's edges. */}
-        <mesh position={[0.266, 0.191, -1.055]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[3.31, 2.40]} />
-          <meshBasicMaterial color="#06130b" side={THREE.DoubleSide} depthWrite />
-        </mesh>
+        {/* The GLB's original curved Screen_low mesh is the opaque backing.
+            There is no extra flat black plane sticking out of the casing. */}
         <Html
           transform
           center
@@ -93,15 +108,25 @@ function Asset({ display, activeTab, onTabChange, onPower }: Pick<Props, 'displa
           // With the previous default of 10, our 900px UI was shrunk by 40x,
           // appearing as a single green speck in the middle of the CRT.
           // At distanceFactor 400, CSS pixels map to model units via scale.
-          // Original GLB screen bounds: x -1.348..1.881 (3.229 units),
-          // z -2.216..0.105 (2.321 units). Overfill by ~1% to avoid gaps.
+          // Original curved screen bounds: x -1.348..1.881 (3.229 units),
+          // z -2.216..0.105 (2.321 units), surface peaks at y=0.1763.
+          // 900 × 648 CSS pixels at this scale fit *inside* that opening.
+          // Recess the interface just ahead of the curved glass peak; the
+          // bezel then visually wraps its edges, unlike the previous floating
+          // overlay at y=0.232.
           distanceFactor={400}
+          occlude
           rotation={[-Math.PI / 2, 0, 0]}
-          position={[0.266, 0.232, -1.055]}
-          scale={0.00363}
+          position={[0.266, 0.184, -1.055]}
+          scale={0.00351}
           className="imported-live-screen"
           zIndexRange={[12, 2]}
-          style={{ width: '900px', height: '648px', pointerEvents: 'auto' }}
+          style={{
+            width: '900px',
+            height: '648px',
+            pointerEvents: screenFacing ? 'auto' : 'none',
+            visibility: screenFacing ? 'visible' : 'hidden',
+          }}
         >
           <div className="imported-screen-wrapper">{display}</div>
         </Html>

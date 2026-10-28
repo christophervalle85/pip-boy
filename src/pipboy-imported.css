@@ -122,8 +122,16 @@
 .imported-screen-wrapper .inventory-layout { min-height: 0; }
 .imported-screen-wrapper .boot-sequence,
 .imported-screen-wrapper .power-off-panel { height: 648px !important; }
-.imported-live-screen { pointer-events: auto; backface-visibility: hidden; }
-.imported-live-screen > div { backface-visibility: hidden; }
+/* Hide the *front-only* live CSS screen on rear-facing surfaces.
+   Drei's raycast occlusion also hides it behind the physical GLB body.
+   The actual curved screen mesh provides the opaque backing. */
+.imported-live-screen,
+.imported-live-screen > div,
+.imported-screen-wrapper {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.imported-live-screen { pointer-events: auto; }
 .imported-live-screen .screen { user-select: auto; }
 
 /* Only camera reset remains below the 3D Pip-Boy while unlocked.

@@ -1,5 +1,9 @@
 # Pip-Boy 3000
 
+## Screen integration fix (v0.7.2)
+
+The live CRT is now recessed immediately in front of the original curved screen mesh instead of floating forward as a separate display. The oversized double-sided black rectangle has been removed. The original mesh remains opaque, and the live HTML screen uses Drei raycast occlusion plus rear/steep-angle visibility checks so it no longer draws through the physical casing. The original live React controls remain interactive from the front.
+
 ## Immersive 3D-only Pip-Boy (v0.7.1)
 
 The textured Pip-Boy is the **only** application view. No flat-screen mockup, 2D route, or 2D toggle remains. When WebGL2 is unavailable, the app displays a clear compatibility message instead of silently changing to another view. The original live React interface stays interactive on the 3D model.
