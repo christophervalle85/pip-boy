@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Activity, ArrowDownToLine, BatteryFull, CarFront, Check, ChevronRight,
+  Activity, ArrowDownToLine, CarFront, Check, ChevronRight,
   Crosshair, Headphones, KeyRound, Laptop, Minus, Pause, Play, Power, Radio, RotateCcw,
-  Box, Monitor, Package, PackageSearch, Pencil, Plus, Settings2, Trash2, Volume2, Wallet,
+  Package, PackageSearch, Pencil, Plus, ScanFace, Settings2, Trash2, Unlock, Volume2, Wallet,
 } from 'lucide-react';
 import {
   initialGame, loadGame, saveGame, special, stations,
@@ -145,16 +145,16 @@ export default function App() {
   const [amber, setAmber] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [powerState, setPowerState] = useState<PowerState>('booting');
-  // Start on the real 3D Pip-Boy every visit. The 2D switch remains a single
-  // optional accessibility fallback, not the landing experience.
-  const [viewMode, setViewMode] = useState<'3d' | 'flat'>(() => {
+  const [stabilized, setStabilized] = useState(false);
+  // This site is 3D-only. Never silently switch back to the old flat UI.
+  const [webglAvailable] = useState(() => {
     try {
       const canvas = document.createElement('canvas');
-      const webgl = canvas.getContext('webgl2');
-      webgl?.getExtension('WEBGL_lose_context')?.loseContext();
-      return webgl ? '3d' : 'flat';
+      const context = canvas.getContext('webgl2');
+      context?.getExtension('WEBGL_lose_context')?.loseContext();
+      return Boolean(context);
     } catch {
-      return 'flat';
+      return false;
     }
   });
   const [bootStep, setBootStep] = useState(0);
@@ -342,19 +342,28 @@ export default function App() {
   );
 
   return (
-    <div className={`page ${amber ? 'theme-amber' : ''} ${powerState === 'off' ? 'page-off' : ''} ${viewMode === '3d' ? 'page-three' : ''}`}>
+    <div className={`page ${amber ? 'theme-amber' : ''} ${powerState === 'off' ? 'page-off' : ''} page-three`}>
       <div className="ambient-blob ambient-blob-one"/><div className="ambient-blob ambient-blob-two"/>
       <header className="page-header" aria-label="Pip-Boy controls">
         <div className="view-header-actions">
-          <button type="button" className="view-control" onClick={() => setViewMode(viewMode === '3d' ? 'flat' : '3d')} aria-label={viewMode === '3d' ? 'Switch to the optional 2D interface' : 'Return to the interactive 3D Pip-Boy'}>
-            {viewMode === '3d' ? <Monitor size={14} /> : <Box size={14} />} {viewMode === '3d' ? '2D VIEW' : '3D VIEW'}
+          <button
+            type="button"
+            className={'view-control' + (stabilized ? ' is-stabilized' : '')}
+            onClick={() => setStabilized((value) => !value)}
+            aria-pressed={stabilized}
+            aria-label={stabilized ? 'Unlock 3D and return to free rotation' : 'Stabilize the 3D Pip-Boy for easier screen interaction'}
+            title={stabilized ? 'Return to the rotatable 3D view' : 'Animate closer to the screen and lock rotation'}
+            disabled={!webglAvailable}
+          >
+            {stabilized ? <Unlock size={14} aria-hidden="true" /> : <ScanFace size={14} aria-hidden="true" />}
+            {stabilized ? 'UNLOCK 3D' : 'STABILIZE VIEW'}
           </button>
           <button type="button" className="view-control" onClick={() => setSettingsOpen(true)} aria-label="Open Pip-Boy settings"><Settings2 size={14} /> CONFIG</button>
           <button type="button" className="view-control" onClick={togglePower} aria-label={powerState === 'off' ? 'Power on Pip-Boy' : 'Power off Pip-Boy'}><Power size={14} /> POWER</button>
         </div>
       </header>
 
-      {viewMode === '3d' ? (
+      {webglAvailable ? (
         <PipBoyImported3D
           display={display}
           activeTab={tab}
@@ -362,21 +371,17 @@ export default function App() {
           onPower={togglePower}
           powerState={powerState}
           amber={amber}
-          onFlatView={() => setViewMode('flat')}
+          stabilized={stabilized}
         />
       ) : (
-      <main className="console-wrap"><div className="side-grip side-grip-left" aria-hidden="true"><i/><i/><i/></div><div className="side-grip side-grip-right" aria-hidden="true"><i/><i/><i/></div>
-        <div className="console-cap"><div className="screw"/><span>MODEL 3000 Mk IV</span><div className="grille"><i/><i/><i/><i/><i/><i/></div><div className="screw"/></div>
-        <div className="console">
-          <div className="console-top"><span className="stamped">PIP-BOY <strong>3000</strong></span><span className="console-series">GENERAL PURPOSE COMPUTER<br/>PERSONAL EDITION / 2077</span><div className="power-unit"><div className={`power-indicator ${powerState === 'off' ? 'is-off' : powerState === 'booting' ? 'is-starting' : ''}`}><span/> PWR</div><button type="button" className="power-control" onClick={togglePower} aria-label={powerState === 'off' ? 'Power on Pip-Boy' : 'Power off Pip-Boy'} title={powerState === 'off' ? 'Power on' : 'Power off'}><Power size={17}/></button></div></div>
-          <div className="screen-bezel">
-            {display}
+        <main className="three-device-stage imported-device-stage" role="status">
+          <div className="pipboy-asset-status">
+            <strong>3D RENDERING UNAVAILABLE</strong>
+            <p>This Pip-Boy requires a browser with WebGL2 enabled to display its interactive 3D model.</p>
           </div>
-          <div className="hardware-footer"><div className="hardware-controls"><div className="vent"><i/><i/><i/><i/><i/><i/><i/></div><button type="button" className="round-control" title="Toggle device settings" aria-label="Open settings" onClick={() => setSettingsOpen(true)}><Settings2 size={19}/></button><div className="hardware-legend"><span>CONFIG</span><small>ROTARY SELECTOR</small></div></div><div className="hardware-stamp">PROPERTY OF<br/><strong>VAULT-TEC</strong></div><div className="hardware-controls right-hardware"><span>BATTERY <strong>100%</strong></span><BatteryFull size={23}/><div className="screw"/></div></div>
-        </div>
-        <div className="console-foot"><div className="screw"/><span>DESIGNED FOR THE WORLD OF TOMORROW</span><div className="screw"/></div>
-      </main>
+        </main>
       )}
+
 
       {editor && (editor.mode === 'add' || editingItem) && (
         <InventoryEditor

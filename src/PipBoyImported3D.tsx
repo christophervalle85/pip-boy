@@ -2,9 +2,9 @@ import { Suspense, useEffect, useMemo, useRef, useState, type ElementRef, type R
 import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
 import { Html, OrbitControls, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
-import { Info, RotateCcw, ScanFace, Unlock } from 'lucide-react';
+import { Info, RotateCcw } from 'lucide-react';
 import type { Tab } from './data';
-import PipBoy3D from './PipBoy3D';
+import './device-3d.css';
 import './pipboy-imported.css';
 
 const MODEL_PATH = '/models/pip-boy-fallout-3-web.glb';
@@ -18,7 +18,7 @@ type Props = {
   onPower: () => void;
   powerState: PowerState;
   amber: boolean;
-  onFlatView: () => void;
+  stabilized: boolean;
 };
 
 function Asset({ display, activeTab, onTabChange, onPower }: Pick<Props, 'display'|'activeTab'|'onTabChange'|'onPower'>) {
@@ -122,7 +122,7 @@ type CameraFlight = {
 };
 
 /**
- * Both modes render the SAME interactive GLB, including the live HTML screen.
+ * Both orbit and stabilized camera states render the SAME interactive GLB.
  * Free mode starts in a three-quarter showcase view. Stabilize animates to a
  * true front-facing close-up of the screen and locks OrbitControls.
  */
@@ -228,7 +228,7 @@ function CameraMotion({
 
 function LoadedScene({
   display, activeTab, onTabChange, onPower, resetToken, stabilized,
-}: Props & { resetToken: number; stabilized: boolean }) {
+}: Props & { resetToken: number }) {
   const controlsRef = useRef<OrbitInstance>(null);
   const [animating, setAnimating] = useState(false);
 
@@ -276,7 +276,7 @@ function LoadedScene({
 export default function PipBoyImported3D(props: Props) {
   const [available, setAvailable] = useState<boolean | null>(null);
   const [resetToken, setResetToken] = useState(0);
-  const [stabilized, setStabilized] = useState(false);
+  const { stabilized } = props;
   const [creditsOpen, setCreditsOpen] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
@@ -296,18 +296,20 @@ export default function PipBoyImported3D(props: Props) {
     return () => { document.body.style.cursor = ''; };
   }, []);
 
-  // GitHub's text connector cannot upload GLB bytes. Until the downloaded file
-  // is copied to public/models, preserve the previous fully working 3D view.
   if (available !== true) {
     return (
-      <div className="asset-fallback-wrap">
-        <PipBoy3D {...props} />
-        {available === false && (
-          <div className="asset-fallback-note" role="status">
-            TEXTURED MODEL NOT INSTALLED · COPY pip-boy-fallout-3-web.glb TO public/models/
-          </div>
-        )}
-      </div>
+      <main className="three-device-stage imported-device-stage" role="status">
+        <div className="pipboy-asset-status">
+          {available === null ? (
+            <strong>INITIALIZING PIP-BOY…</strong>
+          ) : (
+            <>
+              <strong>3D MODEL UNAVAILABLE</strong>
+              <p>Check that <code>public/models/pip-boy-fallout-3-web.glb</code> exists, then refresh.</p>
+            </>
+          )}
+        </div>
+      </main>
     );
   }
 
@@ -320,29 +322,19 @@ export default function PipBoyImported3D(props: Props) {
         <LoadedScene {...props} resetToken={resetToken} stabilized={stabilized} />
       </div>
 
-      <div className="pipboy-viewport-controls">
-        <button
-          type="button"
-          className={'pipboy-stabilize-button' + (stabilized ? ' is-active' : '')}
-          onClick={() => setStabilized((value) => !value)}
-          aria-pressed={stabilized}
-          title={stabilized ? 'Unlock the camera and orbit the Pip-Boy' : 'Animate to a closer front view and lock the 3D camera'}
-        >
-          {stabilized ? <Unlock size={16} aria-hidden="true" /> : <ScanFace size={16} aria-hidden="true" />}
-          {stabilized ? 'UNLOCK 3D' : 'STABILIZE VIEW'}
-        </button>
-        {!stabilized && (
+      {!stabilized && (
+        <div className="pipboy-viewport-controls">
           <button
             type="button"
             className="pipboy-reset-button"
             onClick={() => setResetToken((n) => n + 1)}
-            aria-label="Reset 3D camera"
+            aria-label="Reset the 3D camera"
             title="Reset 3D camera"
           >
             <RotateCcw size={16} aria-hidden="true" />
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="pipboy-credits">
         <button

@@ -1,6 +1,5 @@
 /* The textured 3D Pip-Boy is the experience, not an exhibit inside a card. */
-/* With the decorative brand removed, align the single control group right
-   in the optional flat view as well as in the immersive 3D view. */
+/* The top controls now belong exclusively to the 3D experience. */
 .page .page-header { justify-content: flex-end; }
 
 .page.page-three {
@@ -32,6 +31,15 @@
   backdrop-filter: blur(12px);
 }
 .page-three .view-control:hover { background: #304733; color: #f4ffe8; }
+.page-three .view-control.is-stabilized {
+  color: #142518;
+  background: #bde89a;
+  border-color: #bde89a;
+}
+.page-three .view-control.is-stabilized:hover {
+  color: #142518;
+  background: #dbf7c0;
+}
 
 .imported-device-stage,
 .page-three .imported-device-stage {
@@ -118,8 +126,8 @@
 .imported-live-screen > div { backface-visibility: hidden; }
 .imported-live-screen .screen { user-select: auto; }
 
-/* One focused control group; no frame, status strip, corner decals or
-   competing 'focus to 2D' button. */
+/* Only camera reset remains below the 3D Pip-Boy while unlocked.
+   The main stabilize / unlock control is in the page header. */
 .pipboy-viewport-controls {
   position: absolute;
   z-index: 25;
@@ -157,14 +165,6 @@
 .pipboy-credits button:focus-visible {
   outline: 2px solid #b9f69b;
   outline-offset: 3px;
-}
-.pipboy-viewport-controls .pipboy-stabilize-button.is-active {
-  color: #142518;
-  background: #bde89a;
-  border-color: #bde89a;
-}
-.pipboy-viewport-controls .pipboy-stabilize-button.is-active:hover {
-  background: #dbf7c0;
 }
 .pipboy-viewport-controls .pipboy-reset-button {
   width: 46px;
@@ -243,17 +243,24 @@
   font: 12px Consolas, monospace;
   white-space: nowrap;
 }
-.asset-fallback-wrap { display: flex; flex: 1; width: 100%; min-height: 0; flex-direction: column; }
-.asset-fallback-wrap > .three-device-stage { flex: 1; width: 100%; }
-.asset-fallback-note {
-  align-self: stretch;
-  padding: 9px 12px;
-  border: 1px solid #977a4e;
-  color: #e9c88a;
-  background: #302a19d9;
-  font: 10px/1.5 Consolas, monospace;
+.pipboy-asset-status {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(440px, calc(100vw - 40px));
+  padding: 26px;
+  border: 1px solid #688567;
+  border-radius: 8px;
+  color: #cce4bd;
+  background: #0a1e11ed;
   text-align: center;
+  font: 13px/1.6 Consolas, 'Courier New', monospace;
 }
+.pipboy-asset-status strong { color: #c3f39d; letter-spacing: .09em; }
+.pipboy-asset-status p { margin-bottom: 0; }
+.pipboy-asset-status code { overflow-wrap: anywhere; }
+
 @media (max-width: 740px) {
   .page-three .page-header { top: 14px; right: 12px; }
   .page-three .view-header-actions { gap: 5px; }

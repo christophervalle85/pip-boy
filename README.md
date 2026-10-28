@@ -1,11 +1,11 @@
 # Pip-Boy 3000
 
-## Immersive 3D landing and animated focus (v0.7.0)
+## Immersive 3D-only Pip-Boy (v0.7.1)
 
-The textured, interactive 3D Pip-Boy is now the default landing experience whenever WebGL2 is available (no previously saved 2D preference overrides it). The browser falls back to the flat UI only when 3D graphics are unavailable. There is still **one** optional 2D switch in the upper-right controls.
+The textured Pip-Boy is the **only** application view. No flat-screen mockup, 2D route, or 2D toggle remains. When WebGL2 is unavailable, the app displays a clear compatibility message instead of silently changing to another view. The original live React interface stays interactive on the 3D model.
 
-- **STABILIZE VIEW** animates the actual 3D Pip-Boy from its current orbit to a close, front-facing, *non-rotatable* screen view over approximately 0.95 seconds. The camera targets the physical CRT and advances so the display is easier to read and click; all five tabs, inventory editing, radio, and maps remain live.
-- **UNLOCK 3D** animates back to a three-quarter showcase angle and restores rotation/zoom. The small reset control in free mode re-centers this angle.
+- **STABILIZE VIEW** is now in the **top-right controls** (replacing the former 2D switch). It animates the actual 3D Pip-Boy from its current orbit to a close, front-facing, *non-rotatable* screen view over approximately 0.95 seconds. All five tabs, inventory editing, radio, and maps remain live.
+- **UNLOCK 3D** appears in the same **top-right** position and animates back to a three-quarter showcase angle while restoring rotation/zoom. The small camera-reset icon remains below the model only in free mode; the redundant bottom Stabilize button is gone.
 - Motion is immediate instead of animated when the browser requests reduced motion.
 - The 3D scene fills the page directly: no rectangular viewer border, corner decals, device status text, keyboard hints, large model credit footer, build label, logo square, or page footer.
 - The **ⓘ** button opens the model attribution panel with the artist's name, original Sketchfab model link, [CC BY 4.0 license](https://creativecommons.org/licenses/by/4.0/), and modification disclosure. Full credits remain in [ASSET_CREDITS.md](ASSET_CREDITS.md).
@@ -23,24 +23,11 @@ The user-supplied [Pip-Boy Fallout 3 Concept](https://sketchfab.com/3d-models/pi
 2. Add it at **`public/models/pip-boy-fallout-3-web.glb`** in this repository, using GitHub's upload-file interface or your local working copy.
 3. If working locally, restart or refresh the app after adding the file. The exact filename and path matter.
 
-The 3D renderer detects the asset on load and uses the imported geometry. Until it is present, the earlier procedural 3D view still works, with a missing-asset notice. The original flat view is also preserved. The imported model is automatically recentered and fitted to the viewport. Its curved screen mesh remains as an opaque backing behind a live interactive DOM screen, sized to cover the entire CRT opening. Existing inventory editing, subway/311 map, radio, save data, and system settings continue to use the same application state. The model's named rotary knobs map to radio, tab switching, and power controls. Screen focusing uses the existing **2D VIEW** control.
+The 3D renderer detects the asset on load and uses the imported geometry. When the GLB is missing, the app displays a clear asset error instead of showing a different model. The imported model is recentered and fitted to the viewport. Its curved screen mesh remains as an opaque backing behind a live interactive DOM screen, sized to cover the entire CRT opening. Existing inventory editing, subway/311 map, radio, save data, and system settings continue to use the same application state. The model's named rotary knobs map to radio, tab switching, and power controls. Screen focusing uses the top-right **STABILIZE VIEW** control.
 
-**Stabilized 3D screen (new):** Click **◎ STABILIZE** below the viewer to snap the camera straight in front of the Pip-Boy and lock orbit/zoom, while keeping the original 3D shell and its live clickable display. This is the best mode for browsing STAT/INV/DATA/MAP/RADIO without accidentally spinning the device. Click **✓ STABILIZED · UNLOCK** to rotate and zoom the model freely again. **RESET CAMERA** also returns to the front, without changing your selected rotation mode. If you want a larger flat UI instead, select **FOCUS SCREEN / 2D**.
+**Stabilized 3D screen:** Select **STABILIZE VIEW** in the top-right controls to animate the camera toward the physical screen and lock orbit/zoom. Select **UNLOCK 3D** in that same position to return to the rotatable model. The live screen never switches to a 2D replacement.
 
 This is an independent fan project. The artist's CC BY license covers their contribution, not independent rights to Fallout-related intellectual property.
-
-## Full 3D device (v0.5.0)
-
-The site now opens as a rotatable **3D Pip-Boy** on compatible desktop browsers, with a modeled olive-green casing, wrist cuff, recessed screen, screws, vents, tuner, power knob and clickable tab buttons. The actual live React display—including **STAT, INV, DATA, NYC MAP and RADIO**—is mounted on the virtual device screen through Drei HTML transforms; it is **not** a screenshot or a fake 3D image.
-
-- Drag outside the screen to orbit the device, scroll over its casing to zoom, and use **RESET CAMERA** to return to the front.
-- Click the physical gold tab buttons or use the live on-screen tabs / keyboard shortcuts to change sections.
-- Use the real **POWER** control to turn the display on/off. The radio tuner opens RADIO.
-- Select **FOCUS SCREEN / 2D** or the top **2D VIEW** control for a larger flat screen (particularly useful for the NYC map and detailed inventory editing).
-- On narrow screens or without WebGL2 support, the app starts in its fully functional flat mode. View preference is saved in localStorage independently of character/inventory saves.
-- No third-party 3D model or game assets are included: the shell is original geometry assembled with Three.js.
-
-The 3D view adds rendering overhead; the flat view remains available to ensure keyboard and touchscreen use.
 
 ## Power-on experience
 
