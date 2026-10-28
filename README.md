@@ -13,7 +13,7 @@ The casing has ribbed side grips, fasteners, a recessed screen, and a working il
 - **STAT** — character stats, S.P.E.C.I.A.L. attributes, health/radiation readouts, and a simple survival simulation.
 - **INV** — browse items, filter categories, equip weapons/armor, and use Stimpaks, RadAway, and Nuka-Cola.
 - **DATA** — track quests and mark objectives as completed.
-- **MAP** — explore an original region and discover unknown locations.
+- **MAP** — pan/zoom across all five NYC boroughs on OpenStreetMap, inspect real MTA subway stations and the nearest station to the viewport center, and scan the most recent geolocated NYC 311 reports (up to 80 from the last seven days). Click markers or the nearby data list for details.
 - **RADIO** — tune three stations playing original synthesized ambient signals in your browser (no commercial music).
 - **Persistence** — progress is saved locally in the browser; reset it from the settings footer.
 - **Keyboard shortcuts** — `1`–`5` switch the main tabs. `Esc` closes settings.
@@ -47,10 +47,18 @@ I write commit messages in first person, keeping them short, specific, and natur
 
 ## Suggested next steps
 
-- Make the map larger with more discovered locations and quest markers.
+- Add neighborhood bookmarks, saved apartment shortlists and commute-time comparisons.
 - Add a save-slot system and character customization.
 - Add a licensed or user-provided music library for the radio.
 - Improve accessibility and mobile layouts.
 - Add automated tests for gameplay actions.
 
 The visual design and simulated radio are original. No copied game assets, music, or voice recordings are included.
+
+## NYC map data
+
+The map uses [OpenStreetMap](https://www.openstreetmap.org/copyright) map tiles, the [MTA Subway Stations dataset](https://data.ny.gov/d/39hk-dx4f), and [NYC 311 Service Requests](https://data.cityofnewyork.us/d/erm2-nwe9). These public feeds require **no personal API key** for basic use, although anonymous requests may be rate-limited. The browser connects directly to these sources; it does not upload saved game data.
+
+Open the MAP tab, choose a borough, zoom/pan, and press **SCAN VIEW** to update 311 results for the visible area. Markers are clickable; the sidebar also shows the closest subway stations with **straight-line** distances (not walking or travel times). Subway locations/routes are a station catalog, **not real-time train arrivals or service status**. The 311 list is a capped sample of geolocated requests, updated by NYC daily, and is **not** a comprehensive count or a neighborhood safety score; missing or delayed reports are possible. Each dataset has its own source link in the map.
+
+The free public OSM tile server is best-effort, requires visible attribution, and must not be used for bulk downloading/prefetching. If this becomes a high-traffic production site, select a suitable tile provider and review their usage terms.

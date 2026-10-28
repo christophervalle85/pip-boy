@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Activity, ArrowDownToLine, BatteryFull, Check, ChevronRight, CircleHelp,
-  Crosshair, MapPin, Minus, Pause, Play, Power, Radio, RotateCcw,
+  Activity, ArrowDownToLine, BatteryFull, Check, ChevronRight,
+  Crosshair, Minus, Pause, Play, Power, Radio, RotateCcw,
   Settings2, Shield, Volume2, Zap,
 } from 'lucide-react';
 import {
@@ -9,6 +9,7 @@ import {
   type GameState, type Item, type Tab,
 } from './data';
 import BootScreen, { BOOT_CHECKS } from './BootScreen';
+import NYCMap from './NYCMap';
 
 const TABS: Tab[] = ['STAT', 'INV', 'DATA', 'MAP', 'RADIO'];
 const FILTERS = ['ALL', 'WEAPONS', 'APPAREL', 'AID', 'MISC'] as const;
@@ -125,7 +126,6 @@ export default function App() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('ALL');
   const [selectedItem, setSelectedItem] = useState('pistol');
   const [selectedQuest, setSelectedQuest] = useState('signals');
-  const [selectedLocation, setSelectedLocation] = useState('bunker');
   const [amber, setAmber] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [powerState, setPowerState] = useState<PowerState>('booting');
@@ -190,7 +190,6 @@ export default function App() {
   const currentItem = game.inventory.find((entry) => entry.id === selectedItem) ?? game.inventory[0];
   const items = game.inventory.filter((entry) => entry.count > 0 && (filter === 'ALL' || entry.category === filter));
   const currentQuest = game.quests.find((entry) => entry.id === selectedQuest) ?? game.quests[0];
-  const currentLocation = game.locations.find((entry) => entry.id === selectedLocation) ?? game.locations[0];
   const currentStation = stations.find((entry) => entry.id === radio.station) ?? stations[0];
   const carryWeight = game.inventory.reduce((sum, item) => sum + (item.count * item.weight), 0);
   const xpToLevel = 1000;
@@ -216,7 +215,6 @@ export default function App() {
     setGame(structuredClone(initialGame));
     setSelectedItem('pistol');
     setSelectedQuest('signals');
-    setSelectedLocation('bunker');
     setSettingsOpen(false);
     inform('SAVE DATA RESET');
   };
@@ -226,7 +224,7 @@ export default function App() {
       <div className="ambient-blob ambient-blob-one"/><div className="ambient-blob ambient-blob-two"/>
       <header className="page-header">
         <div className="brand-lockup"><div className="brand-mark" aria-label="Pip-Boy logo"><Zap size={20} fill="currentColor"/></div></div>
-        <span className="build-label"><span className="online-dot"/> BUILD 0.2.0 — {powerState === 'ready' ? 'ONLINE' : powerState === 'booting' ? 'STARTING' : 'STANDBY'}</span>
+        <span className="build-label"><span className="online-dot"/> BUILD 0.3.0 — {powerState === 'ready' ? 'ONLINE' : powerState === 'booting' ? 'STARTING' : 'STANDBY'}</span>
       </header>
 
       <main className="console-wrap"><div className="side-grip side-grip-left" aria-hidden="true"><i/><i/><i/></div><div className="side-grip side-grip-right" aria-hidden="true"><i/><i/><i/></div>
@@ -246,7 +244,7 @@ export default function App() {
                     <button type="button" className={`tab ${item === tab ? 'active' : ''}`} key={item} onClick={() => setTab(item)} aria-current={item === tab ? 'page' : undefined}><span>{item}</span><small>0{index + 1}</small></button>
                   ))}
                 </nav>
-                <div className="screen-heading"><div><span className="breadcrumb">PIP-BOY / {tab}</span><h1>{tab === 'STAT' ? 'PERSONNEL STATUS' : tab === 'INV' ? 'ITEM INVENTORY' : tab === 'DATA' ? 'QUEST DATABASE' : tab === 'MAP' ? 'REGIONAL MAP' : 'FREQUENCY TUNER'}</h1></div><span className="heading-side">{tab === 'STAT' ? `LVL ${String(game.character.level).padStart(2, '0')}` : tab === 'INV' ? `${items.length} LISTED` : tab === 'DATA' ? `${game.quests.filter((q) => !q.completed).length} ACTIVE` : tab === 'MAP' ? 'SECTOR 7G' : `${currentStation.mhz} MHz`}</span></div>
+                <div className="screen-heading"><div><span className="breadcrumb">PIP-BOY / {tab}</span><h1>{tab === 'STAT' ? 'PERSONNEL STATUS' : tab === 'INV' ? 'ITEM INVENTORY' : tab === 'DATA' ? 'QUEST DATABASE' : tab === 'MAP' ? 'NEW YORK CITY' : 'FREQUENCY TUNER'}</h1></div><span className="heading-side">{tab === 'STAT' ? `LVL ${String(game.character.level).padStart(2, '0')}` : tab === 'INV' ? `${items.length} LISTED` : tab === 'DATA' ? `${game.quests.filter((q) => !q.completed).length} ACTIVE` : tab === 'MAP' ? '5 BOROUGHS' : `${currentStation.mhz} MHz`}</span></div>
                 <div className="workspace">
                   {tab === 'STAT' && <div className="stat-layout">
                     <div className="character-card"><div className="corner-label">VAULT DWELLER  //  #017</div><Dweller/><div className="person-label">THE WANDERER <span>• ALIVE</span></div></div>
@@ -269,17 +267,14 @@ export default function App() {
                     <section className="detail-pane quest-detail"><span className="eyebrow">{currentQuest.completed ? 'MISSION COMPLETED' : 'ACTIVE MISSION'} / {currentQuest.location.toUpperCase()}</span><div className="quest-icon"><Crosshair size={46} strokeWidth={1}/></div><h2>{currentQuest.title}</h2><p>{currentQuest.description}</p><div className="objective"><span>CURRENT OBJECTIVE</span><strong>{currentQuest.objective}</strong></div><button type="button" className="primary-action" onClick={() => { setGame((old) => ({ ...old, quests: old.quests.map((quest) => quest.id === currentQuest.id ? { ...quest, completed: !quest.completed } : quest) })); inform(currentQuest.completed ? 'MISSION REACTIVATED' : 'MISSION COMPLETED'); }}>{currentQuest.completed ? 'REOPEN QUEST' : 'MARK COMPLETE'} {currentQuest.completed ? <RotateCcw size={14}/> : <Check size={15}/>}</button></section>
                   </div>}
 
-                  {tab === 'MAP' && <div className="two-column map-layout">
-                    <section className="map-pane"><div className="map-grid"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Interactive map of Sector 7G" role="img"><path className="map-road" d="M0 49 C16 36 23 44 33 35 S56 23 68 30 S86 51 100 40 M20 100 C31 75 39 61 56 61 S79 72 100 67 M15 0 C18 19 23 38 31 51 S35 82 45 100"/><path className="map-river" d="M1 8 C27 18 26 34 42 43 S71 48 88 86 S99 91 102 99"/><path className="map-contour" d="M3 68 Q16 55 25 67 T51 82 M61 9 Q80 -1 94 18 M-4 25 Q9 18 15 29"/></svg>{game.locations.map((loc) => <button key={loc.id} type="button" style={{ left: `${loc.x}%`, top: `${loc.y}%` }} className={`map-pin ${loc.id === selectedLocation ? 'active' : ''} ${loc.discovered ? '' : 'undiscovered'}`} aria-label={`View ${loc.discovered ? loc.name : 'unknown location'}`} onClick={() => setSelectedLocation(loc.id)}>{loc.discovered ? <MapPin size={19} fill="currentColor"/> : <CircleHelp size={20}/>}</button>)}<div className="map-north">N <span>↑</span></div><div className="map-coord">35° 37′ 47″ N<br/>106° 04′ 12″ W</div></div></section>
-                    <section className="map-detail"><span className="eyebrow">LOCATION INTELLIGENCE</span><div className="location-icon"><MapPin size={49} strokeWidth={1}/></div><h2>{currentLocation.discovered ? currentLocation.name : 'UNKNOWN LOCATION'}</h2><span className="location-class">{currentLocation.discovered ? currentLocation.type : 'UNEXPLORED'}</span><p>{currentLocation.discovered ? currentLocation.notes : 'You have a signal for this location, but no reliable reconnaissance data.'}</p><div className="coordinates"><span>MAP COORDINATES</span><strong>GRID {Math.round(currentLocation.x)}-{Math.round(currentLocation.y)}</strong></div><button type="button" className="primary-action" onClick={() => { setGame((old) => ({ ...old, locations: old.locations.map((loc) => loc.id === currentLocation.id ? { ...loc, discovered: !loc.discovered } : loc) })); inform(currentLocation.discovered ? 'LOCATION HIDDEN' : 'LOCATION DISCOVERED'); }}>{currentLocation.discovered ? 'MARK UNDISCOVERED' : 'DISCOVER LOCATION'} <ChevronRight size={15}/></button></section>
-                  </div>}
+                  {tab === 'MAP' && <NYCMap />}
 
                   {tab === 'RADIO' && <div className="two-column radio-layout">
                     <section className="index-pane"><div className="pane-title">AVAILABLE FREQUENCIES <span><SignalBars/></span></div><div className="scroll-list">{stations.map((entry) => <button key={entry.id} type="button" className={`list-row station-row ${radio.station === entry.id ? 'selected' : ''}`} onClick={() => { radio.setStation(entry.id); inform(`TUNED TO ${entry.mhz} MHz`); }}><span><Radio size={15}/> {entry.name}</span><span className="station-freq">{entry.mhz}</span></button>)}</div><div className="pane-bottom">SCANNING COMPLETE // 03 STATIONS</div></section>
                     <section className="radio-detail"><div className="radio-heading"><span className="eyebrow">NOW TUNED</span><span className={radio.playing ? 'on-air' : 'off-air'}><span/> {radio.playing ? 'SIGNAL LIVE' : 'STANDBY'}</span></div><div className={`frequency-display ${radio.playing ? 'playing' : ''}`}><span>{currentStation.mhz}</span><small>MHz</small></div><div className={`waveform ${radio.playing ? 'animated' : ''}`} aria-hidden="true">{Array.from({ length: 42 }, (_, i) => <span key={i} style={{ height: `${12 + (Math.abs(Math.sin(i * 0.69) * Math.cos(i * 0.18)) * 72)}%`, animationDelay: `${i * -0.055}s` }}/>)}</div><h2>{currentStation.name}</h2><p>{currentStation.description}</p><div className="radio-controls"><button type="button" className="play-button" onClick={() => radio.setPlaying(!radio.playing)} aria-label={radio.playing ? 'Stop radio' : 'Play radio'}>{radio.playing ? <Pause size={21} fill="currentColor"/> : <Play size={21} fill="currentColor"/>}</button><div className="volume-control"><Volume2 size={17}/><input aria-label="Radio volume" type="range" min={0} max={100} value={radio.volume} onChange={(event) => radio.setVolume(Number(event.target.value))} /><span>{radio.volume}%</span></div></div><div className="radio-disclaimer">ORIGINAL SYNTHESIZED SIGNALS · NO COPYRIGHTED AUDIO</div></section>
                   </div>}
                 </div>
-                <div className="screen-footer"><span><span className="tiny-block"/> {notice}</span><span>{tab === 'STAT' ? `XP ${game.character.xp} / ${xpToLevel}` : tab === 'MAP' ? `${game.locations.filter((loc) => loc.discovered).length} / ${game.locations.length} LOCATIONS` : 'VAULT-TEC OS 1.0'}</span></div>
+                <div className="screen-footer"><span><span className="tiny-block"/> {tab === 'MAP' ? 'NYC CITY DATA CONNECTED' : notice}</span><span>{tab === 'STAT' ? `XP ${game.character.xp} / ${xpToLevel}` : tab === 'MAP' ? 'NYC 311 / MTA / OSM' : 'VAULT-TEC OS 1.0'}</span></div>
               </div>
               )}
             </div>
