@@ -78,6 +78,12 @@ function Asset({ display, activeTab, onTabChange, onPower }: Pick<Props, 'displa
         <Html
           transform
           center
+          // Drei's transform mode scales CSS pixels by (distanceFactor || 10) / 400.
+          // With the previous default of 10, our 900px UI was shrunk by 40x,
+          // appearing as a single green speck in the middle of the CRT.
+          // At 400, the 0.00335 mesh scale maps 900px to 3.015 GLB units,
+          // nearly matching the physical screen opening (~3.06 units).
+          distanceFactor={400}
           rotation={[-Math.PI / 2, 0, 0]}
           position={[0.266, 0.215, -1.055]}
           scale={0.00335}
