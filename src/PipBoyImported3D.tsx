@@ -15,22 +15,88 @@ type Props = {
   display: ReactNode;
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
+  onRadioNext: () => void;
   onPower: () => void;
   powerState: PowerState;
   amber: boolean;
   stabilized: boolean;
+  cinematicCycle: number;
+  introSkipped: boolean;
 };
 
-function Asset({ display, activeTab, onTabChange, onPower }: Pick<Props, 'display'|'activeTab'|'onTabChange'|'onPower'>) {
+type HardwarePart = {
+  mesh: THREE.Mesh;
+  initialY: number;
+  initialRotation: number;
+  targetRotation: number;
+  impulse: number;
+  kind: 'dial' | 'button';
+};
+
+function identifyHardware(object: THREE.Object3D): string | null {
+  // The 43 exported GLB nodes are named: knob1/2/3_low, RightKnob_low,
+  // light1/2/3/4_low, and Radio_low / RadioInside_low.
+  let node: THREE.Object3D | null = object;
+  while (node) {
+    const name = node.name.toLowerCase();
+    if (/^(knob[123]_low|rightknob_low|light[1234]_low|radio_low|radioinside_low)/.test(name)) return name;
+    node = node.parent;
+  }
+  return null;
+}
+
+function Asset({
+  display, activeTab, onTabChange, onRadioNext, onPower, powerState,
+}: Pick<Props, 'display' | 'activeTab' | 'onTabChange' | 'onRadioNext' | 'onPower' | 'powerState'>) {
   const { scene } = useGLTF(MODEL_PATH);
   const [screenFacing, setScreenFacing] = useState(true);
   const lastFacing = useRef(true);
+  const hardware = useRef<Map<string, HardwarePart>>(new Map());
 
-  // The CSS-based screen must never show through the back or sides of the
-  // physical model. Keep the DOM mounted (so forms/map state aren't reset),
-  // but hide it past a steep viewing angle.
-  useFrame(({ camera }) => {
-    // World-space center of the GLB's actual screen after its parent transforms.
+  const model = useMemo(() => {
+    const copy = scene.clone(true);
+    copy.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return;
+      if (child.name.startsWith('Screen_low_')) {
+        // Restore the physical opaque CRT. The interactive DOM is placed in
+        // front of this curved, depth-tested geometry.
+        child.material = new THREE.MeshBasicMaterial({
+          color: '#06130b', side: THREE.DoubleSide, depthWrite: true,
+        });
+      }
+      if (/^light[1-4]_low/i.test(child.name) && child.material instanceof THREE.MeshStandardMaterial) {
+        // Clone only the indicator materials so other GLB pieces keep their
+        // original textures while the physical buttons can light up.
+        child.material = child.material.clone();
+        child.material.emissive.set('#e6846a');
+        child.material.emissiveIntensity = .06;
+      }
+      child.castShadow = false;
+      child.receiveShadow = false;
+    });
+    return copy;
+  }, [scene]);
+
+  useEffect(() => {
+    const parts = new Map<string, HardwarePart>();
+    model.traverse((node) => {
+      if (!(node instanceof THREE.Mesh)) return;
+      const name = node.name.toLowerCase();
+      if (!/^(knob[123]_low|rightknob_low|light[1234]_low)/.test(name)) return;
+      parts.set(name, {
+        mesh: node,
+        initialY: node.position.y,
+        initialRotation: node.rotation.y,
+        targetRotation: node.rotation.y,
+        impulse: 0,
+        kind: name.startsWith('light') ? 'button' : 'dial',
+      });
+    });
+    hardware.current = parts;
+    return () => { hardware.current = new Map(); };
+  }, [model]);
+
+  useFrame(({ camera }, delta) => {
     const dx = camera.position.x - 0.336;
     const dy = camera.position.y - 0.808;
     const dz = camera.position.z - 1.367;
@@ -40,58 +106,52 @@ function Asset({ display, activeTab, onTabChange, onPower }: Pick<Props, 'displa
       lastFacing.current = facing;
       setScreenFacing(facing);
     }
+
+    const smoothing = 1 - Math.exp(-Math.min(delta, .05) * 16);
+    for (const part of hardware.current.values()) {
+      part.mesh.rotation.y += (part.targetRotation - part.mesh.rotation.y) * smoothing;
+      part.impulse = Math.max(0, part.impulse - Math.min(delta, .05) * 4);
+      const depression = Math.sin(part.impulse * Math.PI) * (part.kind === 'button' ? .03 : .012);
+      part.mesh.position.y = part.initialY - depression;
+      if (part.kind === 'button' && part.mesh.material instanceof THREE.MeshStandardMaterial) {
+        const buttonNumber = Number(part.mesh.name.toLowerCase().slice(5, 6));
+        const lit = powerState === 'ready' && TABS[buttonNumber - 1] === activeTab;
+        part.mesh.material.emissiveIntensity = powerState === 'off' ? 0 : lit ? .65 + part.impulse * .35 : .06 + part.impulse * .24;
+      }
+    }
   });
 
-  const model = useMemo(() => {
-    const copy = scene.clone(true);
-    copy.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        // The textured GLB's original screen is curved and closes the casing.
-        // Keep it as an opaque dark backing instead of removing it: otherwise
-        // the wearer can see into/through the empty casing at oblique angles.
-        if (child.name.startsWith('Screen_low_')) {
-          child.material = new THREE.MeshBasicMaterial({
-            color: '#06130b',
-            side: THREE.DoubleSide,
-            depthWrite: true,
-          });
-        }
-        child.castShadow = false;
-        child.receiveShadow = false;
-      }
-    });
-    return copy;
-  }, [scene]);
-
   const onHardwareClick = (event: ThreeEvent<MouseEvent>) => {
-    const name = event.object.name.toLowerCase();
-    if (name.startsWith('rightknob') || name.startsWith('radio_low')) {
-      event.stopPropagation();
-      onTabChange('RADIO');
-    } else if (name.startsWith('knob1')) {
-      event.stopPropagation();
-      onTabChange(TABS[(TABS.indexOf(activeTab) + TABS.length - 1) % TABS.length]);
-    } else if (name.startsWith('knob2')) {
-      event.stopPropagation();
-      onTabChange(TABS[(TABS.indexOf(activeTab) + 1) % TABS.length]);
-    } else if (name.startsWith('knob3')) {
-      event.stopPropagation();
-      onPower();
+    const name = identifyHardware(event.object);
+    if (!name) return;
+    event.stopPropagation();
+
+    const matching = [...hardware.current.values()].find((part) => part.mesh.name.toLowerCase() === name);
+    if (matching) {
+      matching.impulse = .97;
+      if (matching.kind === 'dial') {
+        // Mesh pivots are the original exported local origins. A small turn
+        // avoids unseating the hardware while making the control feel tactile.
+        matching.targetRotation += name.startsWith('rightknob') ? .18 : .15;
+      }
+    }
+
+    if (name.startsWith('rightknob') || name.startsWith('radio')) onRadioNext();
+    else if (name.startsWith('knob1')) onTabChange(TABS[(TABS.indexOf(activeTab) + TABS.length - 1) % TABS.length]);
+    else if (name.startsWith('knob2')) onTabChange(TABS[(TABS.indexOf(activeTab) + 1) % TABS.length]);
+    else if (name.startsWith('knob3')) onPower();
+    else {
+      const index = Number(name.slice(5, 6)) - 1;
+      if (index >= 0 && index < 4) onTabChange(TABS[index]);
     }
   };
+
   const onHardwareHover = (event: ThreeEvent<PointerEvent>) => {
-    if (/^(rightknob|radio_low|knob[123])/.test(event.object.name.toLowerCase())) {
-      document.body.style.cursor = 'pointer';
-    }
+    if (identifyHardware(event.object)) document.body.style.cursor = 'pointer';
   };
 
   return (
     <group position={[0.07, -0.247, 1.187]}>
-      {/*
-        Sketchfab model: the screen faces +Y and its vertical axis is -Z.
-        Rotate X +90 degrees to face the camera, preserving the original form.
-        The offsets recenter the physical model for proper camera framing.
-      */}
       <group rotation={[Math.PI / 2, 0, 0]}>
         <primitive
           object={model}
@@ -99,21 +159,9 @@ function Asset({ display, activeTab, onTabChange, onPower }: Pick<Props, 'displa
           onPointerOver={onHardwareHover}
           onPointerOut={() => { document.body.style.cursor = ''; }}
         />
-        {/* The GLB's original curved Screen_low mesh is the opaque backing.
-            There is no extra flat black plane sticking out of the casing. */}
         <Html
           transform
           center
-          // Drei's transform mode scales CSS pixels by (distanceFactor || 10) / 400.
-          // With the previous default of 10, our 900px UI was shrunk by 40x,
-          // appearing as a single green speck in the middle of the CRT.
-          // At distanceFactor 400, CSS pixels map to model units via scale.
-          // Original curved screen bounds: x -1.348..1.881 (3.229 units),
-          // z -2.216..0.105 (2.321 units), surface peaks at y=0.1763.
-          // 900 × 648 CSS pixels at this scale fit *inside* that opening.
-          // Recess the interface just ahead of the curved glass peak; the
-          // bezel then visually wraps its edges, unlike the previous floating
-          // overlay at y=0.232.
           distanceFactor={400}
           occlude
           rotation={[-Math.PI / 2, 0, 0]}
@@ -124,7 +172,7 @@ function Asset({ display, activeTab, onTabChange, onPower }: Pick<Props, 'displa
           style={{
             width: '900px',
             height: '648px',
-            pointerEvents: screenFacing ? 'auto' : 'none',
+            pointerEvents: screenFacing && powerState !== 'off' ? 'auto' : 'none',
             visibility: screenFacing ? 'visible' : 'hidden',
           }}
         >
@@ -152,16 +200,21 @@ type CameraFlight = {
  * true front-facing close-up of the screen and locks OrbitControls.
  */
 function CameraMotion({
-  stabilized, resetToken, controlsRef, onAnimating,
+  stabilized, resetToken, controlsRef, onAnimating, cinematicCycle, introSkipped, powerState,
 }: {
   stabilized: boolean;
   resetToken: number;
+  powerState: PowerState;
+  cinematicCycle: number;
+  introSkipped: boolean;
   controlsRef: RefObject<OrbitInstance>;
   onAnimating: (value: boolean) => void;
 }) {
   const { camera, size, invalidate } = useThree();
   const initialized = useRef(false);
   const flight = useRef<CameraFlight | null>(null);
+  const lastCinematicCycle = useRef(cinematicCycle);
+  const lastSkipped = useRef(introSkipped);
 
   useEffect(() => {
     if (!(camera instanceof THREE.PerspectiveCamera)) return;
@@ -199,6 +252,56 @@ function CameraMotion({
     const toPosition = stabilized ? closePosition : freePosition;
     const toTarget = stabilized ? screenTarget : freeTarget;
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const firstMount = !initialized.current;
+    const newStartup = cinematicCycle !== lastCinematicCycle.current;
+    const skipRequested = introSkipped && !lastSkipped.current;
+    lastCinematicCycle.current = cinematicCycle;
+    lastSkipped.current = introSkipped;
+
+    // React StrictMode replays mount effects in development. Don't replace an
+    // already-running cinematic with an unintended shorter reset animation.
+    if (flight.current?.duration === 2.65 && !newStartup && !skipRequested && !stabilized) return;
+
+    // The startup flies in from an elevated side-on inspection angle.
+    // Skip and reduced-motion immediately place the device at its normal
+    // interactive viewing position.
+    if ((firstMount || newStartup) && powerState === 'booting' && !introSkipped && !reducedMotion) {
+      const introPosition = new THREE.Vector3(
+        freeDistance * .96,
+        freeTarget.y + freeDistance * .40,
+        freeDistance * 1.57,
+      );
+      const introTarget = new THREE.Vector3(0, .4, 0);
+      camera.position.copy(introPosition);
+      controls.target.copy(introTarget);
+      camera.lookAt(controls.target);
+      camera.updateProjectionMatrix();
+      controls.update();
+      initialized.current = true;
+      flight.current = {
+        fromPosition: introPosition.clone(),
+        fromTarget: introTarget.clone(),
+        toPosition: freePosition,
+        toTarget: freeTarget,
+        elapsed: 0,
+        duration: 2.65,
+      };
+      onAnimating(true);
+      invalidate();
+      return;
+    }
+
+    if (skipRequested) {
+      flight.current = null;
+      camera.position.copy(toPosition);
+      controls.target.copy(toTarget);
+      camera.lookAt(controls.target);
+      controls.update();
+      initialized.current = true;
+      onAnimating(false);
+      invalidate();
+      return;
+    }
 
     const alreadyThere = camera.position.distanceTo(toPosition) < 0.015 &&
       controls.target.distanceTo(toTarget) < 0.015;
@@ -227,7 +330,7 @@ function CameraMotion({
     };
     onAnimating(true);
     invalidate();
-  }, [camera, size.width, size.height, stabilized, resetToken, controlsRef, onAnimating, invalidate]);
+  }, [camera, size.width, size.height, stabilized, resetToken, cinematicCycle, introSkipped, powerState, controlsRef, onAnimating, invalidate]);
 
   useFrame((_, delta) => {
     const current = flight.current;
@@ -252,7 +355,7 @@ function CameraMotion({
 }
 
 function LoadedScene({
-  display, activeTab, onTabChange, onPower, resetToken, stabilized,
+  display, activeTab, onTabChange, onRadioNext, onPower, powerState, resetToken, stabilized, cinematicCycle, introSkipped,
 }: Props & { resetToken: number }) {
   const controlsRef = useRef<OrbitInstance>(null);
   const [animating, setAnimating] = useState(false);
@@ -270,14 +373,14 @@ function LoadedScene({
       <directionalLight position={[6, 3, -5]} color="#a2c497" intensity={2} />
       <pointLight position={[4, -3, 6]} color="#9ec5a1" intensity={14} distance={30} />
       <Suspense fallback={<Html center><div className="asset-loading">LOADING TEXTURED PIP-BOY…</div></Html>}>
-        <Asset display={display} activeTab={activeTab} onTabChange={onTabChange} onPower={onPower} />
+        <Asset display={display} activeTab={activeTab} onTabChange={onTabChange} onRadioNext={onRadioNext} onPower={onPower} powerState={powerState} />
       </Suspense>
       <OrbitControls
         ref={controlsRef}
         makeDefault
-        enabled={!stabilized && !animating}
-        enableRotate={!stabilized && !animating}
-        enableZoom={!stabilized && !animating}
+        enabled={!stabilized && !animating && powerState === 'ready'}
+        enableRotate={!stabilized && !animating && powerState === 'ready'}
+        enableZoom={!stabilized && !animating && powerState === 'ready'}
         enablePan={false}
         enableDamping
         dampingFactor={0.08}
@@ -293,6 +396,9 @@ function LoadedScene({
         resetToken={resetToken}
         controlsRef={controlsRef}
         onAnimating={setAnimating}
+        cinematicCycle={cinematicCycle}
+        introSkipped={introSkipped}
+        powerState={powerState}
       />
     </Canvas>
   );

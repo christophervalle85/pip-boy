@@ -13,6 +13,9 @@ import NYCMap from './NYCMap';
 import InventoryEditor from './InventoryEditor';
 import PipBoyImported3D from './PipBoyImported3D';
 import WandererMascot from './WandererMascot';
+import StartupOverlay from './StartupOverlay';
+import { useDeviceAudio } from './device-audio';
+import './device-effects.css';
 
 const TABS: Tab[] = ['STAT', 'INV', 'DATA', 'MAP', 'RADIO'];
 const FILTERS = ['ALL', 'TECH', 'PERSONAL', 'KEYS', 'OTHER'] as const;
@@ -122,6 +125,17 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [powerState, setPowerState] = useState<PowerState>('booting');
   const [stabilized, setStabilized] = useState(false);
+  const [cinematicCycle, setCinematicCycle] = useState(0);
+  const [introSkipped, setIntroSkipped] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    try { return localStorage.getItem('pipboy-sfx-enabled') === 'true'; } catch { return false; }
+  });
+  const [crtMode, setCrtMode] = useState<'off' | 'subtle' | 'vivid'>(() => {
+    try {
+      const saved = localStorage.getItem('pipboy-crt-mode');
+      return saved === 'off' || saved === 'vivid' ? saved : 'subtle';
+    } catch { return 'subtle'; }
+  });
   // This site is 3D-only. Never silently switch back to the old flat UI.
   const [webglAvailable] = useState(() => {
     try {
@@ -136,8 +150,27 @@ export default function App() {
   const [bootStep, setBootStep] = useState(0);
   const [notice, setNotice] = useState('ALL SYSTEMS NOMINAL');
   const radio = useRadio();
+  const playDeviceSound = useDeviceAudio(soundEnabled);
+  const changeTab = useCallback((next: Tab) => {
+    setTab(next);
+    playDeviceSound('select');
+  }, [playDeviceSound]);
+  const tuneNextStation = useCallback(() => {
+    const i = stations.findIndex((item) => item.id === radio.station);
+    const next = stations[(i + 1) % stations.length];
+    radio.setStation(next.id);
+    setTab('RADIO');
+    setNotice(`TUNED TO ${next.mhz} MHz`);
+    playDeviceSound('dial');
+  }, [radio.station, radio.setStation, playDeviceSound]);
 
   useEffect(() => saveGame(game), [game]);
+  useEffect(() => {
+    try {
+      localStorage.setItem('pipboy-sfx-enabled', String(soundEnabled));
+      localStorage.setItem('pipboy-crt-mode', crtMode);
+    } catch { /* Private storage is optional. */ }
+  }, [soundEnabled, crtMode]);
   useEffect(() => {
     if (powerState !== 'booting') return;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
@@ -157,12 +190,12 @@ export default function App() {
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.altKey || event.metaKey || event.ctrlKey || ['INPUT', 'TEXTAREA', 'SELECT'].includes((event.target as HTMLElement).tagName)) return;
-      if (powerState === 'ready' && event.key >= '1' && event.key <= '5') setTab(TABS[Number(event.key) - 1]);
+      if (powerState === 'ready' && event.key >= '1' && event.key <= '5') changeTab(TABS[Number(event.key) - 1]);
       if (event.key === 'Escape') setSettingsOpen(false);
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [powerState]);
+  }, [powerState, changeTab]);
 
   const inform = (message: string) => setNotice(message);
   const items = game.inventory.filter((entry) => entry.count > 0 && (filter === 'ALL' || entry.category === filter));
@@ -197,20 +230,31 @@ export default function App() {
     inform('INVENTORY ENTRY REMOVED');
   };
 
-  const reboot = () => {
+  const beginStartup = () => {
     radio.setPlaying(false);
     setSettingsOpen(false);
+    setStabilized(false);
+    setIntroSkipped(false);
+    setCinematicCycle((current) => current + 1);
     setBootStep(0);
     setPowerState('booting');
+    playDeviceSound('boot');
+  };
+  const reboot = () => beginStartup();
+  const finishIntro = () => {
+    setIntroSkipped(true);
+    setPowerState('ready');
+    setNotice('ALL SYSTEMS NOMINAL');
   };
   const togglePower = () => {
     if (powerState === 'off') {
-      setBootStep(0);
-      setPowerState('booting');
+      beginStartup();
     } else {
       radio.setPlaying(false);
       setSettingsOpen(false);
+      setIntroSkipped(true);
       setPowerState('off');
+      playDeviceSound('power');
     }
   };
 
@@ -227,14 +271,14 @@ export default function App() {
   const display = (
             <div className={`screen screen-${powerState === 'ready' ? 'online' : powerState}`}>
               <div className="scanlines" aria-hidden="true" />
-              {powerState === 'booting' && <BootScreen step={bootStep} onSkip={() => setPowerState('ready')} />}
+              {powerState === 'booting' && <BootScreen step={bootStep} onSkip={finishIntro} />}
               {powerState === 'off' && <div className="power-off-panel"><Power size={28}/><strong>DISPLAY OFFLINE</strong><p>PRESS THE POWER BUTTON TO RESTART</p><button type="button" onClick={togglePower}><Power size={14}/> POWER ON</button></div>}
               {powerState === 'ready' && (
-              <div className="screen-content">
+              <div className="screen-content" key={tab}>
                 <div className="screen-meta"><span>ROBCO INDUSTRIES (TM)</span><span className="meta-right"><SignalBars/> SECURE LINK ESTABLISHED</span></div>
                 <nav className="tab-bar" aria-label="Pip-Boy main sections">
                   {TABS.map((item, index) => (
-                    <button type="button" className={`tab ${item === tab ? 'active' : ''}`} key={item} onClick={() => setTab(item)} aria-current={item === tab ? 'page' : undefined}><span>{item}</span><small>0{index + 1}</small></button>
+                    <button type="button" className={`tab ${item === tab ? 'active' : ''}`} key={item} onClick={() => changeTab(item)} aria-current={item === tab ? 'page' : undefined}><span>{item}</span><small>0{index + 1}</small></button>
                   ))}
                 </nav>
                 <div className="screen-heading"><div><span className="breadcrumb">PIP-BOY / {tab}</span><h1>{tab === 'STAT' ? 'PERSONNEL STATUS' : tab === 'INV' ? 'ITEM INVENTORY' : tab === 'DATA' ? 'QUEST DATABASE' : tab === 'MAP' ? 'NEW YORK CITY' : 'FREQUENCY TUNER'}</h1></div><span className="heading-side">{tab === 'STAT' ? `LVL ${String(game.character.level).padStart(2, '0')}` : tab === 'INV' ? `${items.length} LISTED` : tab === 'DATA' ? `${game.quests.filter((q) => !q.completed).length} ACTIVE` : tab === 'MAP' ? '5 BOROUGHS' : `${currentStation.mhz} MHz`}</span></div>
@@ -307,7 +351,7 @@ export default function App() {
                   {tab === 'MAP' && <NYCMap />}
 
                   {tab === 'RADIO' && <div className="two-column radio-layout">
-                    <section className="index-pane"><div className="pane-title">AVAILABLE FREQUENCIES <span><SignalBars/></span></div><div className="scroll-list">{stations.map((entry) => <button key={entry.id} type="button" className={`list-row station-row ${radio.station === entry.id ? 'selected' : ''}`} onClick={() => { radio.setStation(entry.id); inform(`TUNED TO ${entry.mhz} MHz`); }}><span><Radio size={15}/> {entry.name}</span><span className="station-freq">{entry.mhz}</span></button>)}</div><div className="pane-bottom">SCANNING COMPLETE // 03 STATIONS</div></section>
+                    <section className="index-pane"><div className="pane-title">AVAILABLE FREQUENCIES <span><SignalBars/></span></div><div className="scroll-list">{stations.map((entry) => <button key={entry.id} type="button" className={`list-row station-row ${radio.station === entry.id ? 'selected' : ''}`} onClick={() => { radio.setStation(entry.id); playDeviceSound('static'); inform(`TUNED TO ${entry.mhz} MHz`); }}><span><Radio size={15}/> {entry.name}</span><span className="station-freq">{entry.mhz}</span></button>)}</div><div className="pane-bottom">SCANNING COMPLETE // 03 STATIONS</div></section>
                     <section className="radio-detail"><div className="radio-heading"><span className="eyebrow">NOW TUNED</span><span className={radio.playing ? 'on-air' : 'off-air'}><span/> {radio.playing ? 'SIGNAL LIVE' : 'STANDBY'}</span></div><div className={`frequency-display ${radio.playing ? 'playing' : ''}`}><span>{currentStation.mhz}</span><small>MHz</small></div><div className={`waveform ${radio.playing ? 'animated' : ''}`} aria-hidden="true">{Array.from({ length: 42 }, (_, i) => <span key={i} style={{ height: `${12 + (Math.abs(Math.sin(i * 0.69) * Math.cos(i * 0.18)) * 72)}%`, animationDelay: `${i * -0.055}s` }}/>)}</div><h2>{currentStation.name}</h2><p>{currentStation.description}</p><div className="radio-controls"><button type="button" className="play-button" onClick={() => radio.setPlaying(!radio.playing)} aria-label={radio.playing ? 'Stop radio' : 'Play radio'}>{radio.playing ? <Pause size={21} fill="currentColor"/> : <Play size={21} fill="currentColor"/>}</button><div className="volume-control"><Volume2 size={17}/><input aria-label="Radio volume" type="range" min={0} max={100} value={radio.volume} onChange={(event) => radio.setVolume(Number(event.target.value))} /><span>{radio.volume}%</span></div></div><div className="radio-disclaimer">ORIGINAL SYNTHESIZED SIGNALS · NO COPYRIGHTED AUDIO</div></section>
                   </div>}
                 </div>
@@ -318,7 +362,7 @@ export default function App() {
   );
 
   return (
-    <div className={`page ${amber ? 'theme-amber' : ''} ${powerState === 'off' ? 'page-off' : ''} page-three`}>
+    <div className={`page ${amber ? 'theme-amber' : ''} ${powerState === 'off' ? 'page-off' : ''} page-three crt-${crtMode}`}>
       <div className="ambient-blob ambient-blob-one"/><div className="ambient-blob ambient-blob-two"/>
       <header className="page-header" aria-label="Pip-Boy controls">
         <div className="view-header-actions">
@@ -343,11 +387,14 @@ export default function App() {
         <PipBoyImported3D
           display={display}
           activeTab={tab}
-          onTabChange={setTab}
+          onTabChange={changeTab}
+          onRadioNext={tuneNextStation}
           onPower={togglePower}
           powerState={powerState}
           amber={amber}
           stabilized={stabilized}
+          cinematicCycle={cinematicCycle}
+          introSkipped={introSkipped}
         />
       ) : (
         <main className="three-device-stage imported-device-stage" role="status">
@@ -357,7 +404,9 @@ export default function App() {
           </div>
         </main>
       )}
-
+      {powerState === 'booting' && !introSkipped && webglAvailable && (
+        <StartupOverlay step={bootStep} onSkip={finishIntro} />
+      )}
 
       {editor && (editor.mode === 'add' || editingItem) && (
         <InventoryEditor
@@ -370,7 +419,7 @@ export default function App() {
         />
       )}
 
-      {settingsOpen && <div className="modal-backdrop" onClick={() => setSettingsOpen(false)}><div className="settings-modal" role="dialog" aria-modal="true" aria-label="Pip-Boy settings" onClick={(event) => event.stopPropagation()}><div className="modal-header"><h2>SYSTEM CONFIGURATION</h2><button type="button" aria-label="Close settings" onClick={() => setSettingsOpen(false)}><Minus size={18}/></button></div><div className="setting-row"><div><strong>PHOSPHOR DISPLAY</strong><p>Change the monochrome display color.</p></div><button type="button" className="setting-toggle" onClick={() => setAmber(!amber)}>{amber ? 'AMBER' : 'GREEN'} <ChevronRight size={14}/></button></div><div className="setting-row"><div><strong>RESTART SYSTEM</strong><p>Replay startup diagnostics without changing saved progress.</p></div><button type="button" className="setting-toggle" onClick={reboot}><RotateCcw size={14}/> REBOOT</button></div><div className="setting-row"><div><strong>RESTORE DEFAULT SAVE</strong><p>Erase local character, item, quest, and map progress.</p></div><button type="button" className="setting-toggle danger" onClick={reset}><RotateCcw size={14}/> RESET</button></div><div className="settings-tip"><ArrowDownToLine size={17}/> Progress saves automatically in this browser. Nothing is uploaded.</div></div></div>}
+      {settingsOpen && <div className="modal-backdrop" onClick={() => setSettingsOpen(false)}><div className="settings-modal" role="dialog" aria-modal="true" aria-label="Pip-Boy settings" onClick={(event) => event.stopPropagation()}><div className="modal-header"><h2>SYSTEM CONFIGURATION</h2><button type="button" aria-label="Close settings" onClick={() => setSettingsOpen(false)}><Minus size={18}/></button></div><div className="setting-row"><div><strong>PHOSPHOR DISPLAY</strong><p>Change the monochrome display color.</p></div><button type="button" className="setting-toggle" onClick={() => setAmber(!amber)}>{amber ? 'AMBER' : 'GREEN'} <ChevronRight size={14}/></button></div><div className="setting-row"><div><strong>CRT EFFECTS</strong><p>Switch between a clean, subtle or stronger vintage display.</p></div><button type="button" className="setting-toggle" onClick={() => setCrtMode((old) => old === 'off' ? 'subtle' : old === 'subtle' ? 'vivid' : 'off')} aria-label="Cycle CRT effects">CRT: {crtMode.toUpperCase()} <ChevronRight size={14}/></button></div><div className="setting-row"><div><strong>HARDWARE SOUND</strong><p>Optional original clicks and tuning tones. Off by default.</p></div><button type="button" className="setting-toggle" onClick={() => setSoundEnabled((old) => !old)} aria-pressed={soundEnabled}>{soundEnabled ? 'SOUND: ON' : 'SOUND: OFF'} <ChevronRight size={14}/></button></div><div className="setting-row"><div><strong>RESTART SYSTEM</strong><p>Replay startup diagnostics without changing saved progress.</p></div><button type="button" className="setting-toggle" onClick={reboot}><RotateCcw size={14}/> REBOOT</button></div><div className="setting-row"><div><strong>RESTORE DEFAULT SAVE</strong><p>Erase local character, item, quest, and map progress.</p></div><button type="button" className="setting-toggle danger" onClick={reset}><RotateCcw size={14}/> RESET</button></div><div className="settings-tip"><ArrowDownToLine size={17}/> Progress saves automatically in this browser. Nothing is uploaded.</div></div></div>}
     </div>
   );
 }

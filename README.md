@@ -1,5 +1,17 @@
 # Pip-Boy 3000
 
+## Cinematic 3D startup, tactile hardware and CRT polish (v0.10.0)
+
+This update adds a skippable 3D device introduction that accompanies the existing functional boot diagnostics, improved physical hardware interaction, and configurable display effects.
+
+- **Startup:** the camera approaches the actual textured GLB from a distant inspection angle over ~2.65 seconds while the RobCo diagnostics run. A visible **SKIP INTRO** control ends the animation and makes the live screen immediately usable. The same intro can be replayed using CONFIG → REBOOT or POWER. Motion is skipped when the browser requests reduced motion.
+- **Physical controls:** the real exported meshes `knob1`, `knob2`, `knob3`, `RightKnob`, and `light1`–`light4` have small turn/press animations. The left knobs move between tabs, the third handles power, the right tuner cycles radio stations, and the four front buttons select STAT/INV/DATA/MAP. Clicks on the interactive DOM screen continue to work as before. All controls use real GLB geometry, not invented floating knobs.
+- **CRT:** a short phosphor tune-in when switching tabs, a subtle corner vignette and adjustable scanlines. CONFIG → **CRT EFFECTS** cycles OFF / SUBTLE / VIVID; SUBTLE is the default. Reduced motion disables flicker and transitions.
+- **Audio:** optional original synthesized clicks, tuning tones and power/boot chirps. CONFIG → **HARDWARE SOUND** is **OFF by default** and requires an explicit user click to enable. Audio does not start automatically on page load. CRT and audio preferences are saved locally.
+- No extra third-party assets or runtime dependencies; no GitHub Actions required.
+
+**Planned next:** [Interactive AirPods case in INV](docs/FUTURE_3D_INVENTORY.md). The AirPods entry stays functional in its current format until the model is built and inspected.
+
 ## Approved retro cartoon STAT sprites (v0.9.0)
 
 The STAT screen now uses the **user-approved classic 1950s cartoon character artwork** instead of the previous hand-coded SVG. It is a real raster sprite atlas at `public/art/pipboy-stat-sprites.png`: six poses in a 3-column × 2-row transparent PNG, optimized to **8,004 bytes** for fast loading. No external image CDN or paid sprite subscription is required.

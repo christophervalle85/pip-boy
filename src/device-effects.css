@@ -1,0 +1,132 @@
+/* Immersive startup, restrained CRT treatment and hardware feedback. */
+.device-intro {
+  position: absolute;
+  inset: 0;
+  z-index: 24;
+  pointer-events: none;
+  overflow: hidden;
+  color: #dbffc4;
+  font: 11px Consolas, 'Courier New', monospace;
+}
+.device-intro-vignette {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(ellipse 58% 53% at 52% 49%, transparent 10%, #020803dc 88%);
+  animation: device-intro-vignette 2.9s ease-out both;
+}
+.device-intro-identity {
+  position: absolute;
+  top: 49%;
+  left: clamp(28px, 7vw, 110px);
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: min(350px, 65vw);
+  text-shadow: 0 0 16px #92dc75a8;
+  animation: device-intro-text 2.9s ease-out both;
+}
+.device-intro-identity small { font-size: 10px; line-height: 1.6; letter-spacing: .16em; color: #a6c69a; }
+.device-intro-identity strong {
+  font: 900 clamp(32px, 5vw, 68px)/1 'Consolas', 'Courier New', monospace;
+  letter-spacing: -.065em;
+  white-space: nowrap;
+}
+.device-intro-identity strong span { color: #a8d98d; }
+.device-intro-underline { width: 78%; height: 1px; background: linear-gradient(90deg, #b5f69b, transparent); }
+.device-intro-identity p { display: flex; gap: 9px; align-items: center; margin: 6px 0; letter-spacing: .1em; }
+.device-intro-progress {
+  width: 100%; height: 5px;
+  border: 1px solid #72976b;
+  background: #102417;
+}
+.device-intro-progress span { display: block; height: 100%; background: #b2f395; transition: width .35s ease-out; box-shadow: 0 0 14px #b2f3959c; }
+.device-intro-percent { align-self: flex-end; font-size: 10px; }
+.device-intro-skip {
+  position: absolute;
+  bottom: 34px; right: 32px;
+  display: inline-flex; align-items: center; gap: 5px;
+  min-height: 38px; padding: 9px 13px;
+  border: 1px solid #8eb785;
+  border-radius: 3px;
+  color: #dbffc5; background: #122517e8;
+  letter-spacing: .09em; font: 800 10px Consolas, monospace;
+  pointer-events: auto;
+}
+.device-intro-skip:hover, .device-intro-skip:focus-visible { background: #345a37; outline: 2px solid #bbe8a0; outline-offset: 2px; }
+@keyframes device-intro-text {
+  0% { opacity: 0; transform: translate(-18px, -48%); }
+  15%, 63% { opacity: 1; transform: translate(0, -50%); }
+  100% { opacity: 0; transform: translate(0, -54%); }
+}
+@keyframes device-intro-vignette {
+  0% { opacity: 1; }
+  72% { opacity: .82; }
+  100% { opacity: 0; }
+}
+
+/* Each real app tab remounts its viewport contents to play a short tune-in.
+   CSS overlays do not capture mouse/touch events. */
+.page.crt-subtle .scanlines { opacity: .14; }
+.page.crt-vivid .scanlines { opacity: .27; }
+.page.crt-off .scanlines { opacity: 0; }
+.page.crt-subtle .screen::after,
+.page.crt-vivid .screen::after {
+  content: '';
+  position: absolute; inset: 0;
+  z-index: 5; pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 0 34px 10px #0008;
+  background: radial-gradient(ellipse at 50% 50%, transparent 57%, #01070159 100%);
+}
+.page.crt-vivid .screen::after { box-shadow: inset 0 0 56px 18px #000c; }
+.page.crt-subtle .screen-online .screen-content {
+  animation: crt-tune-subtle .28s ease-out both;
+}
+.page.crt-vivid .screen-online .screen-content {
+  animation: crt-tune-vivid .38s ease-out both;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--phosphor) 48%, transparent);
+}
+.page.crt-subtle .screen-booting,
+.page.crt-vivid .screen-booting { animation: crt-power-on .66s ease-out both; }
+.page.crt-vivid .screen-online .scanlines { --scanline-level: .27; animation: crt-microflicker 7.2s linear infinite; }
+.page.crt-subtle .screen-online .scanlines { --scanline-level: .14; animation: crt-microflicker 12s linear infinite; }
+.page.crt-off .screen, .page.crt-off .screen-content { animation: none !important; }
+@keyframes crt-power-on {
+  0% { filter: brightness(.05); transform: scaleY(.035); opacity: .12; }
+  27% { filter: brightness(2.4); transform: scaleY(.09); opacity: .8; }
+  58% { filter: brightness(.8); transform: scaleY(.94); opacity: .95; }
+  100% { filter: brightness(1); transform: scaleY(1); opacity: 1; }
+}
+@keyframes crt-tune-subtle {
+  0% { opacity: .6; filter: brightness(1.4); }
+  100% { opacity: 1; filter: brightness(1); }
+}
+@keyframes crt-tune-vivid {
+  0% { opacity: .18; filter: brightness(2.2) blur(1.8px); transform: translateX(-2px); }
+  27% { opacity: .84; filter: brightness(1.65); transform: translateX(1px); }
+  100% { opacity: 1; filter: brightness(1) blur(0); transform: translateX(0); }
+}
+@keyframes crt-microflicker {
+  0%, 94%, 96%, 100% { opacity: var(--scanline-level, .14); }
+  95% { opacity: .06; }
+}
+.page-three .view-control:focus-visible { outline: 2px solid #d6f4b0; outline-offset: 2px; }
+.setting-toggle:focus-visible { outline: 2px solid var(--phosphor); outline-offset: 2px; }
+.page-three .view-control[disabled] { opacity: .5; cursor: not-allowed; }
+@media (max-width: 700px) {
+  .device-intro-identity { top: 66%; left: 18px; max-width: 85%; }
+  .device-intro-identity strong { font-size: clamp(30px, 9vw, 50px); }
+  .device-intro-skip { right: 14px; bottom: 17px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .device-intro-vignette,
+  .device-intro-identity,
+  .screen-booting,
+  .page.crt-subtle .screen-content,
+  .page.crt-vivid .screen-content,
+  .page .scanlines { animation: none !important; }
+  .device-intro { display: none; }
+}
