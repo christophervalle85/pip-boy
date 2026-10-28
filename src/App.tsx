@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Activity, ArrowDownToLine, BatteryFull, CarFront, Check, ChevronRight,
   Crosshair, Headphones, KeyRound, Laptop, Minus, Pause, Play, Power, Radio, RotateCcw,
-  Package, PackageSearch, Pencil, Plus, Settings2, Trash2, Volume2, Wallet, Zap,
+  Box, Monitor, Package, PackageSearch, Pencil, Plus, Settings2, Trash2, Volume2, Wallet, Zap,
 } from 'lucide-react';
 import {
   initialGame, loadGame, saveGame, special, stations,
@@ -11,6 +11,7 @@ import {
 import BootScreen, { BOOT_CHECKS } from './BootScreen';
 import NYCMap from './NYCMap';
 import InventoryEditor from './InventoryEditor';
+import PipBoy3D from './PipBoy3D';
 
 const TABS: Tab[] = ['STAT', 'INV', 'DATA', 'MAP', 'RADIO'];
 const FILTERS = ['ALL', 'TECH', 'PERSONAL', 'KEYS', 'OTHER'] as const;
@@ -144,11 +145,27 @@ export default function App() {
   const [amber, setAmber] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [powerState, setPowerState] = useState<PowerState>('booting');
+  const [viewMode, setViewMode] = useState<'3d' | 'flat'>(() => {
+    try {
+      const saved = localStorage.getItem('pip-boy-view-mode');
+      const canvas = document.createElement('canvas');
+      const webgl = canvas.getContext('webgl2');
+      webgl?.getExtension('WEBGL_lose_context')?.loseContext();
+      if (!webgl) return 'flat';
+      if (saved === 'flat' || saved === '3d') return saved;
+      return window.innerWidth < 700 ? 'flat' : '3d';
+    } catch {
+      return 'flat';
+    }
+  });
   const [bootStep, setBootStep] = useState(0);
   const [notice, setNotice] = useState('ALL SYSTEMS NOMINAL');
   const radio = useRadio();
 
   useEffect(() => saveGame(game), [game]);
+  useEffect(() => {
+    try { localStorage.setItem('pip-boy-view-mode', viewMode); } catch { /* Private browsing may block storage. */ }
+  }, [viewMode]);
   useEffect(() => {
     if (powerState !== 'booting') return;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
@@ -235,19 +252,7 @@ export default function App() {
     inform('SAVE DATA RESET');
   };
 
-  return (
-    <div className={`page ${amber ? 'theme-amber' : ''} ${powerState === 'off' ? 'page-off' : ''}`}>
-      <div className="ambient-blob ambient-blob-one"/><div className="ambient-blob ambient-blob-two"/>
-      <header className="page-header">
-        <div className="brand-lockup"><div className="brand-mark" aria-label="Pip-Boy logo"><Zap size={20} fill="currentColor"/></div></div>
-        <span className="build-label"><span className="online-dot"/> BUILD 0.4.0 — {powerState === 'ready' ? 'ONLINE' : powerState === 'booting' ? 'STARTING' : 'STANDBY'}</span>
-      </header>
-
-      <main className="console-wrap"><div className="side-grip side-grip-left" aria-hidden="true"><i/><i/><i/></div><div className="side-grip side-grip-right" aria-hidden="true"><i/><i/><i/></div>
-        <div className="console-cap"><div className="screw"/><span>MODEL 3000 Mk IV</span><div className="grille"><i/><i/><i/><i/><i/><i/></div><div className="screw"/></div>
-        <div className="console">
-          <div className="console-top"><span className="stamped">PIP-BOY <strong>3000</strong></span><span className="console-series">GENERAL PURPOSE COMPUTER<br/>PERSONAL EDITION / 2077</span><div className="power-unit"><div className={`power-indicator ${powerState === 'off' ? 'is-off' : powerState === 'booting' ? 'is-starting' : ''}`}><span/> PWR</div><button type="button" className="power-control" onClick={togglePower} aria-label={powerState === 'off' ? 'Power on Pip-Boy' : 'Power off Pip-Boy'} title={powerState === 'off' ? 'Power on' : 'Power off'}><Power size={17}/></button></div></div>
-          <div className="screen-bezel">
+  const display = (
             <div className={`screen screen-${powerState === 'ready' ? 'online' : powerState}`}>
               <div className="scanlines" aria-hidden="true" />
               {powerState === 'booting' && <BootScreen step={bootStep} onSkip={() => setPowerState('ready')} />}
@@ -338,11 +343,46 @@ export default function App() {
               </div>
               )}
             </div>
+  );
+
+  return (
+    <div className={`page ${amber ? 'theme-amber' : ''} ${powerState === 'off' ? 'page-off' : ''} ${viewMode === '3d' ? 'page-three' : ''}`}>
+      <div className="ambient-blob ambient-blob-one"/><div className="ambient-blob ambient-blob-two"/>
+      <header className="page-header">
+        <div className="brand-lockup"><div className="brand-mark" aria-label="Pip-Boy logo"><Zap size={20} fill="currentColor"/></div></div>
+        <div className="view-header-actions">
+          <span className="build-label"><span className="online-dot"/> BUILD 0.5.0 — {powerState === 'ready' ? 'ONLINE' : powerState === 'booting' ? 'STARTING' : 'STANDBY'}</span>
+          <button type="button" className={'view-control ' + (viewMode === '3d' ? 'current-view' : '')} onClick={() => setViewMode(viewMode === '3d' ? 'flat' : '3d')} aria-pressed={viewMode === '3d'}>
+            {viewMode === '3d' ? <Monitor size={14} /> : <Box size={14} />} {viewMode === '3d' ? '2D VIEW' : '3D VIEW'}
+          </button>
+          <button type="button" className="view-control" onClick={() => setSettingsOpen(true)} aria-label="Open Pip-Boy settings"><Settings2 size={14} /> CONFIG</button>
+          <button type="button" className="view-control" onClick={togglePower} aria-label={powerState === 'off' ? 'Power on Pip-Boy' : 'Power off Pip-Boy'}><Power size={14} /> POWER</button>
+        </div>
+      </header>
+
+      {viewMode === '3d' ? (
+        <PipBoy3D
+          display={display}
+          activeTab={tab}
+          onTabChange={setTab}
+          onPower={togglePower}
+          powerState={powerState}
+          amber={amber}
+          onFlatView={() => setViewMode('flat')}
+        />
+      ) : (
+      <main className="console-wrap"><div className="side-grip side-grip-left" aria-hidden="true"><i/><i/><i/></div><div className="side-grip side-grip-right" aria-hidden="true"><i/><i/><i/></div>
+        <div className="console-cap"><div className="screw"/><span>MODEL 3000 Mk IV</span><div className="grille"><i/><i/><i/><i/><i/><i/></div><div className="screw"/></div>
+        <div className="console">
+          <div className="console-top"><span className="stamped">PIP-BOY <strong>3000</strong></span><span className="console-series">GENERAL PURPOSE COMPUTER<br/>PERSONAL EDITION / 2077</span><div className="power-unit"><div className={`power-indicator ${powerState === 'off' ? 'is-off' : powerState === 'booting' ? 'is-starting' : ''}`}><span/> PWR</div><button type="button" className="power-control" onClick={togglePower} aria-label={powerState === 'off' ? 'Power on Pip-Boy' : 'Power off Pip-Boy'} title={powerState === 'off' ? 'Power on' : 'Power off'}><Power size={17}/></button></div></div>
+          <div className="screen-bezel">
+            {display}
           </div>
           <div className="hardware-footer"><div className="hardware-controls"><div className="vent"><i/><i/><i/><i/><i/><i/><i/></div><button type="button" className="round-control" title="Toggle device settings" aria-label="Open settings" onClick={() => setSettingsOpen(true)}><Settings2 size={19}/></button><div className="hardware-legend"><span>CONFIG</span><small>ROTARY SELECTOR</small></div></div><div className="hardware-stamp">PROPERTY OF<br/><strong>VAULT-TEC</strong></div><div className="hardware-controls right-hardware"><span>BATTERY <strong>100%</strong></span><BatteryFull size={23}/><div className="screw"/></div></div>
         </div>
         <div className="console-foot"><div className="screw"/><span>DESIGNED FOR THE WORLD OF TOMORROW</span><div className="screw"/></div>
       </main>
+      )}
 
       <footer className="page-footer"><span><Power size={13}/> {powerState === 'off' ? 'SYSTEM OFFLINE' : powerState === 'booting' ? 'STARTING UP' : 'SYSTEM ACTIVE'} <span className="footer-separator">/</span> LOCAL STORAGE ENABLED</span><span>PRESS <kbd>1</kbd>–<kbd>5</kbd> TO SWITCH TABS</span></footer>
 

@@ -1,6 +1,19 @@
 # Pip-Boy 3000
 
-A Fallout-inspired personal information processor built with React, TypeScript, and Vite. An original fan-made UI with glowing monochrome styling and fully interactive tabs. This is an unofficial project, not affiliated with Bethesda or Vault-Tec.
+A Fallout-inspired personal information processor built with React, TypeScript, Vite, Three.js, and React Three Fiber. An original fan-made UI with glowing monochrome styling and fully interactive tabs. This is an unofficial project, not affiliated with Bethesda or Vault-Tec.
+
+## Full 3D device (v0.5.0)
+
+The site now opens as a rotatable **3D Pip-Boy** on compatible desktop browsers, with a modeled olive-green casing, wrist cuff, recessed screen, screws, vents, tuner, power knob and clickable tab buttons. The actual live React display—including **STAT, INV, DATA, NYC MAP and RADIO**—is mounted on the virtual device screen through Drei HTML transforms; it is **not** a screenshot or a fake 3D image.
+
+- Drag outside the screen to orbit the device, scroll over its casing to zoom, and use **RESET CAMERA** to return to the front.
+- Click the physical gold tab buttons or use the live on-screen tabs / keyboard shortcuts to change sections.
+- Use the real **POWER** control to turn the display on/off. The radio tuner opens RADIO.
+- Select **FOCUS SCREEN / 2D** or the top **2D VIEW** control for a larger flat screen (particularly useful for the NYC map and detailed inventory editing).
+- On narrow screens or without WebGL2 support, the app starts in its fully functional flat mode. View preference is saved in localStorage independently of character/inventory saves.
+- No third-party 3D model or game assets are included: the shell is original geometry assembled with Three.js.
+
+The 3D view adds rendering overhead; the flat view remains available to ensure keyboard and touchscreen use.
 
 ## Power-on experience
 
