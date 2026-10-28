@@ -72,3 +72,37 @@
   .imported-device-stage { min-height: 460px; height: calc(100svh - 155px); }
   .imported-model-credit { text-align: center; align-self: center; }
 }
+
+
+/*
+ * The R3F Canvas is a div containing a canvas and Drei's Html portal.
+ * Its old percentage height resolved against a flex item without a definite
+ * height in Chrome, creating a tiny 3D viewport at the frame's top.
+ * Absolute inset positioning makes the actual WebGL drawing buffer and
+ * Html overlay use the same full-sized viewport.
+ */
+.imported-canvas-frame {
+  position: relative;
+  min-height: 0;
+}
+.imported-canvas-frame > div:first-child {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 1;
+  overflow: visible !important;
+}
+.imported-canvas-frame canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+.imported-live-screen,
+.imported-live-screen > div {
+  backface-visibility: visible;
+}
+.imported-screen-wrapper .screen {
+  background: #071d0e;
+  color: #b6fa8f;
+}

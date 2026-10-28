@@ -98,12 +98,14 @@ function CameraFit({ token }: { token: number }) {
     if (!(camera instanceof THREE.PerspectiveCamera)) return;
     const fov = camera.fov * Math.PI / 180;
     const aspect = Math.max(0.4, size.width / Math.max(size.height, 1));
-    // Model projected extents ~6.35 × 5.11 units. Fill the shorter screen axis.
-    const distance = Math.max(
-      5.65 / (2 * Math.tan(fov / 2)),
-      7.20 / (2 * Math.tan(fov / 2) * aspect),
-    );
-    camera.position.set(0, 0.12, Math.max(distance, 8.55));
+    // Measured from the supplied GLB after its 90-degree rotation:
+    // 6.354 wide × 5.105 high × 3.437 deep (not guessed from a render).
+    // Keep a little clearance for the parts of the shell closest to the camera.
+    const targetFill = 0.83;
+    const fitHeight = 5.1054 / (2 * Math.tan(fov / 2) * targetFill);
+    const fitWidth = 6.3544 / (2 * Math.tan(fov / 2) * aspect * targetFill);
+    const distance = Math.max(fitHeight, fitWidth) + 1.1;
+    camera.position.set(0, 0, distance);
     camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
     invalidate();
@@ -114,6 +116,9 @@ function CameraFit({ token }: { token: number }) {
 function LoadedScene({ display, activeTab, onTabChange, onPower, resetToken }: Props & { resetToken: number }) {
   return (
     <Canvas
+      // Absolutely fill the entire flex frame. A percentage-height Canvas
+      // collapsed to a short strip at the top on desktop (the screenshot bug).
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}
       dpr={[1, 1.75]}
       camera={{ position: [0, 0, 10], fov: 35, near: 0.05, far: 80 }}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
@@ -127,11 +132,12 @@ function LoadedScene({ display, activeTab, onTabChange, onPower, resetToken }: P
         <Asset display={display} activeTab={activeTab} onTabChange={onTabChange} onPower={onPower} />
       </Suspense>
       <OrbitControls
+        makeDefault
         enablePan={false}
         enableDamping
         dampingFactor={0.08}
-        minDistance={7}
-        maxDistance={22}
+        minDistance={6.5}
+        maxDistance={26}
         minPolarAngle={0.35}
         maxPolarAngle={Math.PI - 0.35}
         minAzimuthAngle={-Math.PI * 0.46}
