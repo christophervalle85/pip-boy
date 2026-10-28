@@ -1,16 +1,13 @@
 export type Tab = 'STAT' | 'INV' | 'DATA' | 'MAP' | 'RADIO';
-export type ItemCategory = 'WEAPONS' | 'APPAREL' | 'AID' | 'MISC';
+export type ItemCategory = 'TECH' | 'PERSONAL' | 'KEYS';
 export type Item = {
   id: string;
   name: string;
   category: ItemCategory;
   count: number;
-  weight: number;
-  value: number;
   description: string;
   stat: string;
-  equipable?: boolean;
-  usable?: boolean;
+  cash?: number;
 };
 export type Quest = {
   id: string;
@@ -30,20 +27,61 @@ export type MapLocation = {
   discovered: boolean;
 };
 export type Character = { hp: number; maxHp: number; ap: number; rads: number; level: number; caps: number; xp: number; equippedWeapon: string | null; equippedArmor: string | null };
-export type GameState = { character: Character; inventory: Item[]; quests: Quest[]; locations: MapLocation[] };
+export type GameState = { character: Character; inventory: Item[]; inventoryRevision: number; quests: Quest[]; locations: MapLocation[] };
 
 export const initialGame: GameState = {
-  character: { hp: 285, maxHp: 285, ap: 110, rads: 6, level: 12, caps: 243, xp: 560, equippedWeapon: 'pistol', equippedArmor: 'jumpsuit' },
+  character: { hp: 285, maxHp: 285, ap: 110, rads: 6, level: 12, caps: 243, xp: 560, equippedWeapon: null, equippedArmor: null },
+  inventoryRevision: 2,
   inventory: [
-    { id: 'pistol', name: '10mm Pistol', category: 'WEAPONS', count: 1, weight: 3.5, value: 50, description: 'Reliable, compact and just loud enough to draw every ghoul in the county.', stat: 'DMG 18  ·  AMMO 10mm', equipable: true },
-    { id: 'rifle', name: 'Pipe Rifle', category: 'WEAPONS', count: 1, weight: 5.1, value: 33, description: 'Built from scrap, stubbornness, and some very questionable engineering.', stat: 'DMG 27  ·  AMMO .38', equipable: true },
-    { id: 'ammo', name: '10mm Round', category: 'MISC', count: 48, weight: 0, value: 1, description: 'Standard ballistic ammunition for your trusty 10mm pistol.', stat: 'AMMO 10mm' },
-    { id: 'jumpsuit', name: 'Vault Jumpsuit', category: 'APPAREL', count: 1, weight: 1, value: 20, description: 'A little faded, but the blue and gold still inspire confidence.', stat: 'DMG RESIST 5', equipable: true },
-    { id: 'leather', name: 'Worn Leather Coat', category: 'APPAREL', count: 1, weight: 3, value: 18, description: 'Looks better than it smells. Probably.', stat: 'DMG RESIST 8', equipable: true },
-    { id: 'stimpak', name: 'Stimpak', category: 'AID', count: 5, weight: 0.1, value: 48, description: 'A miraculous little syringe. Restores 75 HP.', stat: '+75 HP', usable: true },
-    { id: 'radaway', name: 'RadAway', category: 'AID', count: 3, weight: 0.5, value: 80, description: 'Flush some of the wasteland out of your bloodstream.', stat: '-50 RADS', usable: true },
-    { id: 'nuka', name: 'Nuka-Cola', category: 'AID', count: 2, weight: 1, value: 20, description: 'Refreshing, invigorating and slightly radioactive.', stat: '+15 HP / +3 RADS', usable: true },
-    { id: 'scrap', name: 'Wonderglue', category: 'MISC', count: 2, weight: 0.5, value: 4, description: 'Always useful for making things that should not hold together, hold together.', stat: 'JUNK COMPONENT' },
+    {
+      id: 'macbook-1',
+      name: 'MacBook 01',
+      category: 'TECH',
+      count: 1,
+      description: 'One of your two MacBooks. A little piece of civilization you can carry anywhere. Exact model and battery status have not been recorded.',
+      stat: 'PERSONAL DEVICE · 01 / 02',
+    },
+    {
+      id: 'macbook-2',
+      name: 'MacBook 02',
+      category: 'TECH',
+      count: 1,
+      description: 'Your second MacBook, tracked separately from the first. Another computer in your personal inventory, with its own place in the loadout.',
+      stat: 'PERSONAL DEVICE · 02 / 02',
+    },
+    {
+      id: 'wallet',
+      name: 'Wallet',
+      category: 'PERSONAL',
+      count: 1,
+      cash: 34.53,
+      description: 'Your everyday wallet. It currently holds $34.53 in cash—every dollar and cent accounted for.',
+      stat: 'CASH ON HAND · $34.53',
+    },
+    {
+      id: 'car-keys',
+      name: 'Car Keys',
+      category: 'KEYS',
+      count: 1,
+      description: "The keys to your car. Easy to overlook until you are already standing beside the driver's door.",
+      stat: 'VEHICLE ACCESS',
+    },
+    {
+      id: 'house-key',
+      name: 'House Key',
+      category: 'KEYS',
+      count: 1,
+      description: 'A single house key. Small enough to disappear into a pocket, important enough to check for twice.',
+      stat: 'HOME ACCESS',
+    },
+    {
+      id: 'airpods',
+      name: 'AirPods',
+      category: 'TECH',
+      count: 1,
+      description: 'Your AirPods, ready for music, calls, and tuning out the noise of the city. Battery status has not been recorded.',
+      stat: 'WIRELESS AUDIO',
+    },
   ],
   quests: [
     { id: 'signals', title: 'A Signal in the Static', location: 'Radio Tower Echo', objective: 'Investigate the repeating emergency broadcast.', description: 'A voice keeps breaking through the static every night at exactly 11:17. Find the transmission source.', completed: false },
@@ -84,6 +122,15 @@ export function loadGame(): GameState {
     const parsed = JSON.parse(saved) as Partial<GameState>;
     if (!parsed.character || !Array.isArray(parsed.inventory) || !Array.isArray(parsed.quests) || !Array.isArray(parsed.locations)) {
       throw new Error('Invalid save');
+    }
+    // Adopt the new real-world loadout exactly once, without erasing existing stats or quests.
+    if (parsed.inventoryRevision !== initialGame.inventoryRevision) {
+      return {
+        ...(parsed as GameState),
+        inventoryRevision: initialGame.inventoryRevision,
+        inventory: structuredClone(initialGame.inventory),
+        character: { ...parsed.character, equippedWeapon: null, equippedArmor: null },
+      } as GameState;
     }
     return parsed as GameState;
   } catch {

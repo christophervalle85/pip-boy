@@ -1,20 +1,30 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Activity, ArrowDownToLine, BatteryFull, Check, ChevronRight,
-  Crosshair, Minus, Pause, Play, Power, Radio, RotateCcw,
-  Settings2, Shield, Volume2, Zap,
+  Activity, ArrowDownToLine, BatteryFull, CarFront, Check, ChevronRight,
+  Crosshair, Headphones, KeyRound, Laptop, Minus, Pause, Play, Power, Radio, RotateCcw,
+  Settings2, Volume2, Wallet, Zap,
 } from 'lucide-react';
 import {
   initialGame, loadGame, saveGame, special, stations,
-  type GameState, type Item, type Tab,
+  type GameState, type Tab,
 } from './data';
 import BootScreen, { BOOT_CHECKS } from './BootScreen';
 import NYCMap from './NYCMap';
 
 const TABS: Tab[] = ['STAT', 'INV', 'DATA', 'MAP', 'RADIO'];
-const FILTERS = ['ALL', 'WEAPONS', 'APPAREL', 'AID', 'MISC'] as const;
+const FILTERS = ['ALL', 'TECH', 'PERSONAL', 'KEYS'] as const;
 type PowerState = 'booting' | 'ready' | 'off';
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));
+
+function InventoryIcon({ id }: { id: string }) {
+  const props = { size: 100, strokeWidth: 1.1 };
+  if (id.startsWith('macbook')) return <Laptop {...props} />;
+  if (id === 'wallet') return <Wallet {...props} />;
+  if (id === 'car-keys') return <CarFront {...props} />;
+  if (id === 'house-key') return <KeyRound {...props} />;
+  if (id === 'airpods') return <Headphones {...props} />;
+  return <BatteryFull {...props} />;
+}
 
 function Meter({ label, value, max, suffix = '', small = false }: {
   label: string; value: number; max: number; suffix?: string; small?: boolean;
@@ -124,7 +134,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('STAT');
   const [game, setGame] = useState<GameState>(loadGame);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('ALL');
-  const [selectedItem, setSelectedItem] = useState('pistol');
+  const [selectedItem, setSelectedItem] = useState('macbook-1');
   const [selectedQuest, setSelectedQuest] = useState('signals');
   const [amber, setAmber] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -161,37 +171,12 @@ export default function App() {
   }, [powerState]);
 
   const inform = (message: string) => setNotice(message);
-  const useItem = (item: Item) => {
-    if (item.count < 1) return;
-    if (item.equipable) {
-      setGame((old) => ({ ...old, character: {
-        ...old.character,
-        ...(item.category === 'WEAPONS' ? { equippedWeapon: item.id } : { equippedArmor: item.id }),
-      } }));
-      inform(`${item.name.toUpperCase()} EQUIPPED`);
-      return;
-    }
-    if (!item.usable) return;
-    setGame((old) => {
-      const next = { ...old, character: { ...old.character }, inventory: old.inventory.map((i) => ({ ...i })) };
-      if (item.id === 'stimpak') next.character.hp = clamp(next.character.hp + 75, 0, next.character.maxHp);
-      if (item.id === 'radaway') next.character.rads = clamp(next.character.rads - 50, 0, 1000);
-      if (item.id === 'nuka') {
-        next.character.hp = clamp(next.character.hp + 15, 0, next.character.maxHp);
-        next.character.rads = clamp(next.character.rads + 3, 0, 1000);
-      }
-      const consumed = next.inventory.find((i) => i.id === item.id);
-      if (consumed) consumed.count = Math.max(0, consumed.count - 1);
-      return next;
-    });
-    inform(`${item.name.toUpperCase()} USED`);
-  };
-
   const currentItem = game.inventory.find((entry) => entry.id === selectedItem) ?? game.inventory[0];
   const items = game.inventory.filter((entry) => entry.count > 0 && (filter === 'ALL' || entry.category === filter));
   const currentQuest = game.quests.find((entry) => entry.id === selectedQuest) ?? game.quests[0];
   const currentStation = stations.find((entry) => entry.id === radio.station) ?? stations[0];
-  const carryWeight = game.inventory.reduce((sum, item) => sum + (item.count * item.weight), 0);
+  const itemCount = game.inventory.reduce((sum, item) => sum + item.count, 0);
+  const cashOnHand = game.inventory.find((item) => item.id === 'wallet')?.cash ?? 0;
   const xpToLevel = 1000;
 
   const reboot = () => {
@@ -213,7 +198,7 @@ export default function App() {
 
   const reset = () => {
     setGame(structuredClone(initialGame));
-    setSelectedItem('pistol');
+    setSelectedItem('macbook-1');
     setSelectedQuest('signals');
     setSettingsOpen(false);
     inform('SAVE DATA RESET');
@@ -253,13 +238,40 @@ export default function App() {
                       <div className="triple-stats"><div><span>LEVEL</span><strong>{String(game.character.level).padStart(2, '0')}</strong></div><div><span>CAPS</span><strong>{game.character.caps}</strong></div><div><span>XP</span><strong>{game.character.xp}</strong></div></div>
                       <div className="mini-heading"><span>S.P.E.C.I.A.L. ATTRIBUTES</span><span>BASE VALUES</span></div>
                       <div className="special-grid">{special.map((entry) => <div key={entry.short} title={entry.name}><small>{entry.short}</small><strong>{entry.score}</strong></div>)}</div>
-                      <div className="test-actions"><button type="button" onClick={() => { setGame((old) => ({ ...old, character: { ...old.character, hp: Math.max(0, old.character.hp - 25) } })); inform('SIMULATED DAMAGE: -25 HP'); }}><Crosshair size={13}/> TEST DAMAGE</button><button type="button" onClick={() => { const stimpak = game.inventory.find((i) => i.id === 'stimpak'); if (stimpak?.count) useItem(stimpak); else inform('NO STIMPAKS REMAINING'); }}><Activity size={13}/> USE STIMPAK</button></div>
+                      <div className="test-actions"><button type="button" onClick={() => { setGame((old) => ({ ...old, character: { ...old.character, hp: Math.max(0, old.character.hp - 25) } })); inform('SIMULATED DAMAGE: -25 HP'); }}><Crosshair size={13}/> TEST DAMAGE</button><button type="button" onClick={() => { setGame((old) => ({ ...old, character: { ...old.character, hp: old.character.maxHp } })); inform('HIT POINTS RESTORED'); }}><Activity size={13}/> RESTORE HP</button></div>
                     </div>
                   </div>}
 
                   {tab === 'INV' && <div className="two-column inventory-layout">
-                    <section className="index-pane"><div className="filter-row" aria-label="Inventory categories">{FILTERS.map((option) => <button key={option} type="button" className={filter === option ? 'selected' : ''} onClick={() => { setFilter(option); const first = game.inventory.find((item) => item.count > 0 && (option === 'ALL' || item.category === option)); if (first) setSelectedItem(first.id); }}>{option}</button>)}</div><div className="scroll-list">{items.map((item) => <button key={item.id} type="button" className={`list-row ${selectedItem === item.id ? 'selected' : ''}`} onClick={() => setSelectedItem(item.id)}><span>{item.name}{(game.character.equippedWeapon === item.id || game.character.equippedArmor === item.id) && <Check size={13}/>}</span><span className="row-count">{item.count > 1 ? `×${item.count}` : <ChevronRight size={14}/>}</span></button>)}{!items.length && <p className="empty">NO ITEMS IN CATEGORY</p>}</div><div className="pane-bottom">WT {carryWeight.toFixed(1)} / 150 &nbsp; • &nbsp; CAPS {game.character.caps}</div></section>
-                    <section className="detail-pane"><span className="eyebrow">ITEM INSPECTOR / {currentItem.category}</span><div className="item-illustration" aria-hidden="true">{currentItem.category === 'WEAPONS' ? <Crosshair size={100} strokeWidth={1} /> : currentItem.category === 'APPAREL' ? <Shield size={100} strokeWidth={1} /> : currentItem.category === 'AID' ? <Activity size={100} strokeWidth={1} /> : <BatteryFull size={100} strokeWidth={1} />}</div><h2>{currentItem.name}</h2><div className="item-stat">{currentItem.stat}</div><p>{currentItem.description}</p><div className="detail-stats"><span>WEIGHT <strong>{currentItem.weight}</strong></span><span>VALUE <strong>{currentItem.value}</strong></span><span>OWNED <strong>{currentItem.count}</strong></span></div>{(currentItem.usable || currentItem.equipable) && <button type="button" className="primary-action" disabled={currentItem.count < 1} onClick={() => useItem(currentItem)}>{currentItem.usable ? 'USE ITEM' : (game.character.equippedWeapon === currentItem.id || game.character.equippedArmor === currentItem.id) ? 'EQUIPPED' : 'EQUIP ITEM'} <ChevronRight size={15}/></button>}</section>
+                    <section className="index-pane">
+                      <div className="filter-row" aria-label="Inventory categories">
+                        {FILTERS.map((option) => <button key={option} type="button" className={filter === option ? 'selected' : ''} onClick={() => {
+                          setFilter(option);
+                          const first = game.inventory.find((item) => item.count > 0 && (option === 'ALL' || item.category === option));
+                          if (first) setSelectedItem(first.id);
+                        }}>{option}</button>)}
+                      </div>
+                      <div className="scroll-list">
+                        {items.map((item) => <button key={item.id} type="button" className={`list-row ${selectedItem === item.id ? 'selected' : ''}`} onClick={() => setSelectedItem(item.id)}>
+                          <span>{item.name}</span>
+                          <span className="row-count">{item.cash !== undefined ? `$${item.cash.toFixed(2)}` : item.count > 1 ? `×${item.count}` : <ChevronRight size={14} />}</span>
+                        </button>)}
+                        {!items.length && <p className="empty">NO ITEMS IN CATEGORY</p>}
+                      </div>
+                      <div className="pane-bottom">{itemCount} ITEMS &nbsp; • &nbsp; CASH ${cashOnHand.toFixed(2)}</div>
+                    </section>
+                    <section className="detail-pane">
+                      <span className="eyebrow">PERSONAL LOADOUT / {currentItem.category}</span>
+                      <div className="item-illustration" aria-hidden="true"><InventoryIcon id={currentItem.id} /></div>
+                      <h2>{currentItem.name}</h2>
+                      <div className="item-stat">{currentItem.stat}</div>
+                      <p>{currentItem.description}</p>
+                      <div className="detail-stats">
+                        <span>CATEGORY <strong>{currentItem.category}</strong></span>
+                        <span>OWNED <strong>{currentItem.count}</strong></span>
+                        <span>{currentItem.cash !== undefined ? 'CASH' : 'RECORD'} <strong>{currentItem.cash !== undefined ? `$${currentItem.cash.toFixed(2)}` : 'ON FILE'}</strong></span>
+                      </div>
+                    </section>
                   </div>}
 
                   {tab === 'DATA' && <div className="two-column">

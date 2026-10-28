@@ -11,13 +11,17 @@ The casing has ribbed side grips, fasteners, a recessed screen, and a working il
 ## What works
 
 - **STAT** — character stats, S.P.E.C.I.A.L. attributes, health/radiation readouts, and a simple survival simulation.
-- **INV** — browse items, filter categories, equip weapons/armor, and use Stimpaks, RadAway, and Nuka-Cola.
+- **INV** — browse a personal everyday-carry inventory with two individually cataloged MacBooks, a wallet containing $34.53 cash, car keys, a house key, and AirPods. Filter the belongings by Tech, Personal, or Keys.
 - **DATA** — track quests and mark objectives as completed.
 - **MAP** — pan/zoom across all five NYC boroughs on OpenStreetMap, inspect real MTA subway stations and the nearest station to the viewport center, and scan the most recent geolocated NYC 311 reports (up to 80 from the last seven days). Click markers or the nearby data list for details.
 - **RADIO** — tune three stations playing original synthesized ambient signals in your browser (no commercial music).
-- **Persistence** — progress is saved locally in the browser; reset it from the settings footer.
+- **Persistence** — progress is saved locally in the browser. Earlier saves are migrated once to the new everyday-carry inventory without wiping character or quest progress; reset everything from device settings.
 - **Keyboard shortcuts** — `1`–`5` switch the main tabs. `Esc` closes settings.
 - **Themes** — toggle green or amber phosphor.
+
+## Everyday-carry inventory
+
+MacBooks are separate inventory entries so both are visible individually. The wallet records **$34.53** in cash, exactly as requested. Device models, battery percentages, key details, and unprovided prices are intentionally not invented. This is a personal property log, so these items have descriptions rather than Fallout-style consume or equip actions. The fantasy STAT tab remains a simulation, with a direct **RESTORE HP** test button instead of an unavailable Stimpak.
 
 ## Run locally
 
