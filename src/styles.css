@@ -90,7 +90,6 @@ body { margin: 0; min-width: 320px; }
 .stat-layout { height: 100%; display: grid; grid-template-columns: 42% 58%; padding-top: 12px; }
 .character-card { display: flex; flex-direction: column; align-items: center; justify-content: space-between; border-right: 1px solid var(--phosphor-deep); min-height: 0; position: relative; }
 .corner-label { align-self: flex-start; color: var(--phosphor-dim); font-size: 9px; letter-spacing: .07em; }
-.dweller { width: min(88%, 230px); height: 245px; filter: drop-shadow(0 0 8px color-mix(in srgb, var(--phosphor) 34%, transparent)); color: var(--phosphor); }
 .person-label { align-self: stretch; font-size: 11px; font-weight: 800; letter-spacing: .1em; border-top: 1px solid var(--phosphor-deep); padding: 10px 11px; }
 .person-label span { float: right; font-size: 9px; font-weight: 400; color: var(--phosphor-muted); }
 .stat-main { padding: 1px 0 0 26px; display: flex; flex-direction: column; min-width: 0; }
@@ -239,7 +238,6 @@ kbd { font: inherit; border: 1px solid #4d554b; padding: 1px 4px; border-radius:
   .heading-side { font-size: 8px; }
   .stat-layout { grid-template-columns: 40% 60%; }
   .stat-main { padding-left: 10px; }
-  .dweller { height: 225px; }
   .corner-label { font-size: 7px; }
   .meter-label { font-size: 8px; }
   .meter-label strong { font-size: 10px; }
@@ -289,7 +287,6 @@ kbd { font: inherit; border: 1px solid #4d554b; padding: 1px 4px; border-radius:
   .special-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .special-grid > div { padding: 4px; }
   .triple-stats > div { padding: 7px 2px; }
-  .character-card .dweller { width: 100%; }
   .screen-footer { font-size: 8px; }
   .screen-footer > span:last-child { display: none; }
   .hardware-controls { gap: 5px; }

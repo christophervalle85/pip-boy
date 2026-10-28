@@ -1,5 +1,15 @@
 # Pip-Boy 3000
 
+## Animated character artwork on STAT (v0.8.0)
+
+The old minimal line-art figure has been replaced with an **original, detailed SVG wasteland explorer** on the STAT screen. This is not a downloaded Fallout/Vault Boy sprite and doesn't require a subscription, third-party asset hosting, or separate attribution.
+
+- Mid-century-inspired expressive character art: utility jumpsuit, belt, boots, wrist-mounted computer, textured hair, rounded facial features, gloves, and an oversized thumbs-up.
+- Subtle CRT animation: breathing, blinking, a moving head, wrist/hand motion, rotating biometric rings, and intermittent signal flicker.
+- **Interactive:** click or tap the character to salute, then tap again to return to the idle pose. Native button semantics and focus styles support keyboard use.
+- **Reactive:** the expression and diagnostic text reflect the actual HP and radiation values. Low health gives a worried expression and medical alert; high radiation gives a warning; zero HP shows an offline signal.
+- All visuals use the existing green/amber CRT palette and respect the browser's **Reduce Motion** preference. No new dependencies or external services.
+
 ## Screen integration fix (v0.7.2)
 
 The live CRT is now recessed immediately in front of the original curved screen mesh instead of floating forward as a separate display. The oversized double-sided black rectangle has been removed. The original mesh remains opaque, and the live HTML screen uses Drei raycast occlusion plus rear/steep-angle visibility checks so it no longer draws through the physical casing. The original live React controls remain interactive from the front.

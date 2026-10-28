@@ -12,6 +12,7 @@ import BootScreen, { BOOT_CHECKS } from './BootScreen';
 import NYCMap from './NYCMap';
 import InventoryEditor from './InventoryEditor';
 import PipBoyImported3D from './PipBoyImported3D';
+import WandererMascot from './WandererMascot';
 
 const TABS: Tab[] = ['STAT', 'INV', 'DATA', 'MAP', 'RADIO'];
 const FILTERS = ['ALL', 'TECH', 'PERSONAL', 'KEYS', 'OTHER'] as const;
@@ -39,31 +40,6 @@ function Meter({ label, value, max, suffix = '', small = false }: {
       <div className="meter-label"><span>{label}</span><strong>{value}{suffix} <em>/ {max}{suffix}</em></strong></div>
       <div className="meter-track"><div className="meter-fill" style={{ width: `${clamp((value / max) * 100, 0, 100)}%` }} /></div>
     </div>
-  );
-}
-
-function Dweller() {
-  return (
-    <svg className="dweller" viewBox="0 0 230 288" role="img" aria-label="Smiling retro-futurist vault explorer illustration">
-      <defs><pattern id="hatch" patternUnits="userSpaceOnUse" width="6" height="6"><path d="M0 6 L6 0" stroke="currentColor" strokeWidth=".5" opacity=".24" /></pattern></defs>
-      <g fill="none" stroke="currentColor" strokeWidth="4.2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M78 52 Q70 25 97 17 Q132 7 149 30 Q157 39 151 57 L149 82 Q135 107 111 103 Q90 100 81 81Z"/>
-        <path d="M78 48 Q81 17 109 19 Q136 14 150 35 Q126 40 101 37 Q90 54 78 48Z" fill="currentColor" opacity=".7" />
-        <path d="M83 53 Q74 37 67 52 Q64 65 82 73 M151 54 Q161 42 168 55 Q169 68 150 73"/>
-        <path d="M99 67 Q104 63 110 67 M132 66 Q137 63 142 66" strokeWidth="3" />
-        <path d="M118 69 Q114 80 125 81 M101 84 Q120 99 140 82" strokeWidth="3"/>
-        <path d="M97 107 Q114 118 135 108 M101 106 L91 119 L75 127 L57 191 L69 202 L91 165 L87 219 L143 219 L142 165 L161 199 L175 191 L155 127 L137 118 L130 108"/>
-        <path d="M91 119 Q116 135 137 118 M101 128 L101 213 M128 128 L128 214 M87 161 L143 161 M86 213 L144 213"/>
-        <path d="M91 218 L87 259 L83 274 L111 274 L115 218 M118 218 L119 274 L150 274 L145 259 L141 218"/>
-        <path d="M85 272 L79 282 L113 282 L111 274 M120 275 L118 282 L154 282 L150 273"/>
-        <path d="M64 196 L51 217 L65 224 L77 201 M166 195 L180 220 L166 229 L152 202" />
-        <path d="M170 191 Q191 180 197 161 L212 158 Q214 179 200 195 L180 207"/>
-        <path d="M199 164 L194 146 M207 162 L205 148 M215 158 L218 145" strokeWidth="3.2"/>
-        <path d="M95 163 L135 163 M93 172 L139 172" strokeWidth="2.4" />
-        <path d="M107 142 L121 137 L121 151 L107 150Z" fill="currentColor" opacity=".5" strokeWidth="1"/>
-      </g>
-      <path d="M90 119 L141 120 L141 215 L89 215Z" fill="url(#hatch)" opacity=".5"/>
-    </svg>
   );
 }
 
@@ -264,7 +240,7 @@ export default function App() {
                 <div className="screen-heading"><div><span className="breadcrumb">PIP-BOY / {tab}</span><h1>{tab === 'STAT' ? 'PERSONNEL STATUS' : tab === 'INV' ? 'ITEM INVENTORY' : tab === 'DATA' ? 'QUEST DATABASE' : tab === 'MAP' ? 'NEW YORK CITY' : 'FREQUENCY TUNER'}</h1></div><span className="heading-side">{tab === 'STAT' ? `LVL ${String(game.character.level).padStart(2, '0')}` : tab === 'INV' ? `${items.length} LISTED` : tab === 'DATA' ? `${game.quests.filter((q) => !q.completed).length} ACTIVE` : tab === 'MAP' ? '5 BOROUGHS' : `${currentStation.mhz} MHz`}</span></div>
                 <div className="workspace">
                   {tab === 'STAT' && <div className="stat-layout">
-                    <div className="character-card"><div className="corner-label">VAULT DWELLER  //  #017</div><Dweller/><div className="person-label">THE WANDERER <span>• ALIVE</span></div></div>
+                    <div className="character-card"><div className="corner-label">FIELD OPERATIVE  //  #017</div><WandererMascot hp={game.character.hp} maxHp={game.character.maxHp} rads={game.character.rads}/><div className="person-label">THE WANDERER <span>• {game.character.hp > 0 ? 'ALIVE' : 'OFFLINE'}</span></div></div>
                     <div className="stat-main">
                       <div className="meter-stack"><Meter label="HIT POINTS" value={game.character.hp} max={game.character.maxHp}/><Meter label="ACTION POINTS" value={game.character.ap} max={110}/><Meter label="RADIATION" value={game.character.rads} max={1000}/></div>
                       <div className="triple-stats"><div><span>LEVEL</span><strong>{String(game.character.level).padStart(2, '0')}</strong></div><div><span>CAPS</span><strong>{game.character.caps}</strong></div><div><span>XP</span><strong>{game.character.xp}</strong></div></div>

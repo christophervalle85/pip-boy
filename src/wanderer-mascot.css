@@ -1,0 +1,168 @@
+/* Original, infinitely scalable CRT character art for the STAT screen.
+   All rendering is browser-native SVG; no paid or external artwork. */
+.character-card { overflow: hidden; }
+.wanderer-portrait {
+  appearance: none;
+  -webkit-appearance: none;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: min(100%, 340px);
+  min-height: 0;
+  margin: 0 auto;
+  padding: 0 8px 7px;
+  border: 0;
+  border-radius: 10px;
+  background:
+    radial-gradient(ellipse 54% 50% at 50% 49%, color-mix(in srgb, var(--phosphor) 11%, transparent), transparent 78%);
+  color: var(--phosphor);
+  cursor: pointer;
+  outline-offset: -4px;
+  -webkit-tap-highlight-color: transparent;
+}
+.wanderer-portrait:hover {
+  background:
+    radial-gradient(ellipse 54% 50% at 50% 49%, color-mix(in srgb, var(--phosphor) 17%, transparent), transparent 79%);
+}
+.wanderer-portrait:focus-visible {
+  outline: 2px solid var(--phosphor);
+  border-radius: 6px;
+}
+.wanderer-svg {
+  width: 100%;
+  height: min(100%, 344px);
+  min-height: 0;
+  max-height: 344px;
+  overflow: visible;
+  flex: 1 1 auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--phosphor) 40%, transparent));
+}
+.wanderer-body {
+  transform-origin: 160px 350px;
+  animation: wanderer-breathe 4.8s ease-in-out infinite;
+}
+.wanderer-head {
+  transform-origin: 159px 155px;
+  animation: wanderer-head-tilt 6.7s ease-in-out infinite;
+}
+.wanderer-eyes {
+  transform-origin: 164px 103px;
+  animation: wanderer-blink 6.1s linear infinite;
+}
+.wanderer-gesture {
+  transform-origin: 218px 211px;
+  animation: wanderer-thumb-idle 4.8s ease-in-out infinite;
+}
+.wanderer-portrait.is-saluting .wanderer-gesture {
+  animation: wanderer-wave .85s ease-in-out infinite alternate;
+}
+.wanderer-radar-ring {
+  transform-origin: 160px 174px;
+  animation: wanderer-radar 30s linear infinite;
+}
+.wanderer-scan-sweep {
+  transform-origin: 160px 174px;
+  animation: wanderer-radar 7.5s linear infinite;
+}
+.wanderer-scanner { opacity: .72; }
+.wanderer-stars {
+  animation: wanderer-flicker 6s linear infinite;
+}
+.wanderer-diagnostic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 17px;
+  max-width: 100%;
+  color: var(--phosphor);
+  font: 800 9px/1.4 Consolas, 'Courier New', monospace;
+  letter-spacing: .11em;
+  text-align: center;
+  white-space: normal;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--phosphor) 36%, transparent);
+}
+.wanderer-diagnostic-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  box-shadow: 0 0 7px currentColor;
+  border-radius: 50%;
+  animation: wanderer-flicker 3s ease-in-out infinite;
+}
+.wanderer-hint {
+  font: 8px/1.3 Consolas, 'Courier New', monospace;
+  letter-spacing: .13em;
+  color: var(--phosphor-muted);
+  opacity: .4;
+  transition: opacity .16s;
+}
+.wanderer-portrait:hover .wanderer-hint,
+.wanderer-portrait:focus-visible .wanderer-hint,
+.wanderer-portrait.is-saluting .wanderer-hint { opacity: .9; }
+.wanderer-portrait[data-condition='hurt'] .wanderer-body {
+  animation: wanderer-shiver .26s ease-in-out 2, wanderer-breathe 5.7s ease-in-out infinite;
+}
+.wanderer-portrait[data-condition='hurt'] .wanderer-head {
+  transform: rotate(-7deg);
+  animation: none;
+}
+.wanderer-portrait[data-condition='offline'] .wanderer-body,
+.wanderer-portrait[data-condition='offline'] .wanderer-head,
+.wanderer-portrait[data-condition='offline'] .wanderer-gesture {
+  animation: none;
+}
+.wanderer-portrait[data-condition='offline'] .wanderer-body { opacity: .48; }
+.wanderer-portrait[data-condition='hurt'] .wanderer-diagnostic-dot,
+.wanderer-portrait[data-condition='irradiated'] .wanderer-diagnostic-dot {
+  animation: wanderer-alert .65s steps(1) infinite;
+}
+@keyframes wanderer-breathe {
+  0%, 100% { transform: translateY(1.5px) scaleY(.995); }
+  50% { transform: translateY(-2.5px) scaleY(1.007); }
+}
+@keyframes wanderer-head-tilt {
+  0%, 35%, 100% { transform: rotate(0deg); }
+  45%, 57% { transform: rotate(-3deg); }
+}
+@keyframes wanderer-blink {
+  0%, 42%, 44%, 76%, 78%, 100% { transform: scaleY(1); }
+  43%, 77% { transform: scaleY(.09); }
+}
+@keyframes wanderer-thumb-idle {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(2deg); }
+}
+@keyframes wanderer-wave {
+  from { transform: rotate(-10deg); }
+  to { transform: rotate(12deg); }
+}
+@keyframes wanderer-radar { to { transform: rotate(360deg); } }
+@keyframes wanderer-flicker {
+  0%, 93%, 97%, 100% { opacity: 1; }
+  95% { opacity: .45; }
+}
+@keyframes wanderer-shiver {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(3px); }
+}
+@keyframes wanderer-alert {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: .2; }
+}
+@media (max-width: 760px) {
+  .wanderer-portrait { padding: 0 2px 4px; }
+  .wanderer-diagnostic { font-size: 8px; letter-spacing: .04em; }
+  .wanderer-hint { font-size: 7px; letter-spacing: .04em; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wanderer-body, .wanderer-head, .wanderer-eyes,
+  .wanderer-gesture, .wanderer-radar-ring,
+  .wanderer-scan-sweep, .wanderer-stars,
+  .wanderer-diagnostic-dot { animation: none !important; }
+}
