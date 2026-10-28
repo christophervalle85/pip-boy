@@ -1,14 +1,19 @@
 # Pip-Boy 3000
 
-## Animated character artwork on STAT (v0.8.0)
+## Approved retro cartoon STAT sprites (v0.9.0)
 
-The old minimal line-art figure has been replaced with an **original, detailed SVG wasteland explorer** on the STAT screen. This is not a downloaded Fallout/Vault Boy sprite and doesn't require a subscription, third-party asset hosting, or separate attribution.
+The STAT screen now uses the **user-approved classic 1950s cartoon character artwork** instead of the previous hand-coded SVG. It is a real raster sprite atlas at `public/art/pipboy-stat-sprites.png`: six poses in a 3-column × 2-row transparent PNG, optimized to **8,004 bytes** for fast loading. No external image CDN or paid sprite subscription is required.
 
-- Mid-century-inspired expressive character art: utility jumpsuit, belt, boots, wrist-mounted computer, textured hair, rounded facial features, gloves, and an oversized thumbs-up.
-- Subtle CRT animation: breathing, blinking, a moving head, wrist/hand motion, rotating biometric rings, and intermittent signal flicker.
-- **Interactive:** click or tap the character to salute, then tap again to return to the idle pose. Native button semantics and focus styles support keyboard use.
-- **Reactive:** the expression and diagnostic text reflect the actual HP and radiation values. Low health gives a worried expression and medical alert; high radiation gives a warning; zero HP shows an offline signal.
-- All visuals use the existing green/amber CRT palette and respect the browser's **Reduce Motion** preference. No new dependencies or external services.
+- **Healthy:** cheerful thumbs-up by default; **click to salute** and click again to stand down
+- **Injured:** bandaged arm and concerned expression when HP is **50% or below**
+- **Critical:** visibly doubled over when HP is **25% or below**
+- **Irradiated:** nauseated pose when radiation reaches **400 or more**, unless more urgent HP conditions apply
+- **Offline:** lying unconscious when HP reaches zero
+- The pose and diagnostic label are driven by the same live saved character stats as the HP/radiation meters; switching tabs and back preserves the underlying stats
+- A short pose transition and gentle idle animation respect the browser's **Reduce Motion** preference
+- The amber screen theme also adapts the green sprite colors. Missing assets show an explicit status instead of silently disappearing
+
+The original full-resolution sprite concepts remain available in the conversation archive; the shipped image is an indexed-color web optimization preserving the chosen cartoon pose designs.
 
 ## Screen integration fix (v0.7.2)
 
