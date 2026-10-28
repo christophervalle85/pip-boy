@@ -1,0 +1,218 @@
+/* Editable inventory controls, using the existing monochrome device palette. */
+.inventory-manager-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 0 8px;
+  border-bottom: 1px solid var(--phosphor-deep);
+  margin-bottom: 6px;
+}
+.inventory-manager-toolbar > span {
+  font: 800 9px Consolas, monospace;
+  letter-spacing: .10em;
+  color: var(--phosphor-muted);
+}
+.inventory-add-button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--phosphor);
+  background: var(--phosphor-deep);
+  color: var(--phosphor);
+  font: 800 9px Consolas, monospace;
+  padding: 7px 9px;
+  transition: background .18s;
+}
+.inventory-add-button:hover { background: var(--phosphor-dim); color: var(--screen-bg); }
+.inventory-detail-actions {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 8px;
+}
+.inventory-detail-actions button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--phosphor-dim);
+  color: var(--phosphor);
+  background: #162d1b49;
+  padding: 9px 7px;
+  font: 800 10px Consolas, monospace;
+  transition: background .18s;
+}
+.inventory-detail-actions button:hover { background: var(--phosphor-deep); }
+.inventory-detail-actions .inventory-remove-button {
+  border-color: #967453;
+  color: #e4b07e;
+  background: #50301d24;
+}
+.inventory-detail-actions .inventory-remove-button:hover { background: #653a26a0; }
+.inventory-empty-detail { justify-content: center; align-items: center; text-align: center; gap: 13px; padding: 14px; }
+.inventory-empty-detail svg { color: var(--phosphor-dim); }
+.inventory-empty-detail h2 { font: 900 16px Consolas, monospace; letter-spacing: .05em; margin: 0; }
+.inventory-empty-detail p { text-align: center; font-size: 10px; margin: 0; }
+.inventory-empty-detail .inventory-add-button { padding: 10px 13px; }
+
+.inventory-editor-backdrop { z-index: 30; }
+.inventory-editor {
+  width: min(100%, 555px);
+  max-height: min(92vh, 760px);
+  overflow-y: auto;
+  border: 3px solid #52654a;
+  background: #0b1a10;
+  color: var(--phosphor);
+  padding: 21px 22px 16px;
+  box-shadow: inset 0 0 0 1px #101d11, 0 28px 100px #000d, 0 0 26px #70d7681a;
+  font-family: Consolas, 'Lucida Console', 'Courier New', monospace;
+  scrollbar-color: var(--phosphor-dim) #0b1a10;
+}
+.inventory-editor-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 13px;
+  border-bottom: 1px solid var(--phosphor-dim);
+}
+.inventory-editor-kicker {
+  font-size: 9px;
+  color: var(--phosphor-muted);
+  letter-spacing: .13em;
+}
+.inventory-editor-header h2 {
+  font-size: 17px;
+  letter-spacing: .035em;
+  line-height: 1.2;
+  margin: 7px 0 0;
+}
+.inventory-editor-close {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: var(--phosphor);
+  background: transparent;
+  border: 1px solid var(--phosphor-dim);
+}
+.inventory-editor-close:hover { background: var(--phosphor-deep); }
+.inventory-editor-fields { display: flex; flex-direction: column; gap: 12px; padding: 15px 0; }
+.inventory-editor-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.inventory-editor-field > span {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .075em;
+}
+.inventory-editor-field > span b { color: #e5b47f; }
+.inventory-editor-field input,
+.inventory-editor-field select,
+.inventory-editor-field textarea {
+  border: 1px solid var(--phosphor-dim);
+  border-radius: 0;
+  color: var(--phosphor);
+  background: #071009;
+  font: 12px Consolas, monospace;
+  padding: 10px 11px;
+  width: 100%;
+  min-width: 0;
+  outline-offset: 2px;
+  resize: vertical;
+}
+.inventory-editor-field input::placeholder,
+.inventory-editor-field textarea::placeholder { color: var(--phosphor-dim); opacity: .75; }
+.inventory-editor-field select { appearance: auto; }
+.inventory-editor-field option { background: #09180c; color: #b8f589; }
+.inventory-editor-field small {
+  color: var(--phosphor-dim);
+  font-size: 8px;
+  letter-spacing: .025em;
+  line-height: 1.4;
+}
+.inventory-editor-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.inventory-money-input { display: flex; align-items: stretch; border: 1px solid var(--phosphor-dim); background: #071009; }
+.inventory-money-input > span { align-self: center; padding: 0 11px; font-size: 14px; border-right: 1px solid var(--phosphor-deep); }
+.inventory-money-input input { border: 0; background: transparent; }
+.inventory-editor-error {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font: 10px/1.5 Consolas, monospace;
+  border: 1px solid #ae7348;
+  padding: 9px 10px;
+  background: #6c311d25;
+  color: #f0b88b;
+}
+.inventory-editor-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  border-top: 1px solid var(--phosphor-deep);
+  padding-top: 13px;
+}
+.inventory-editor-footer button,
+.inventory-delete-confirm button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 11px;
+  border: 1px solid var(--phosphor-dim);
+  background: transparent;
+  color: var(--phosphor);
+  font: 800 10px Consolas, monospace;
+  white-space: nowrap;
+}
+.inventory-editor-footer button:hover,
+.inventory-delete-confirm button:hover { background: var(--phosphor-deep); }
+.inventory-editor-footer .inventory-save {
+  border-color: var(--phosphor);
+  background: var(--phosphor);
+  color: var(--screen-bg);
+}
+.inventory-editor-footer .inventory-save:hover { filter: brightness(1.13); background: var(--phosphor); }
+.inventory-editor-footer .inventory-delete-trigger { border-color: #9d6249; color: #e8a47d; }
+.inventory-editor-fill { flex: 1; }
+.inventory-delete-confirm {
+  border: 1px solid #c18a4b;
+  background: #57341c35;
+  padding: 11px;
+  margin: 2px 0 13px;
+  font: 10px/1.5 Consolas, monospace;
+  color: #ebbc89;
+}
+.inventory-delete-confirm strong { display: block; margin-bottom: 4px; }
+.inventory-delete-confirm p { margin: 0 0 10px; font-size: 9px; }
+.inventory-delete-confirm > div { display: flex; flex-wrap: wrap; gap: 7px; }
+.inventory-delete-confirm .inventory-delete-final { border-color: #db9a61; color: #f6c49b; background: #5b2a1d6b; }
+.inventory-editor-footnote {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-top: 1px dashed var(--phosphor-deep);
+  color: var(--phosphor-dim);
+  font: 9px Consolas, monospace;
+  padding-top: 12px;
+  margin-top: 14px;
+}
+@media (max-width: 760px) {
+  .inventory-manager-toolbar { padding: 7px 0; }
+  .inventory-manager-toolbar > span { font-size: 8px; }
+  .inventory-add-button { padding: 6px 7px; font-size: 8px; }
+  .inventory-detail-actions button { font-size: 9px; padding: 7px 3px; }
+}
+@media (max-width: 420px) {
+  .inventory-editor { padding: 15px 12px 13px; }
+  .inventory-editor-header h2 { font-size: 14px; }
+  .inventory-editor-kicker { font-size: 7px; }
+  .inventory-editor-fields { gap: 10px; }
+  .inventory-editor-field input, .inventory-editor-field select,
+  .inventory-editor-field textarea { padding: 9px 8px; font-size: 11px; }
+  .inventory-editor-footer button { padding: 9px 7px; font-size: 9px; }
+  .inventory-manager-toolbar > span { display: none; }
+}

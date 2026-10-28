@@ -1,5 +1,5 @@
 export type Tab = 'STAT' | 'INV' | 'DATA' | 'MAP' | 'RADIO';
-export type ItemCategory = 'TECH' | 'PERSONAL' | 'KEYS';
+export type ItemCategory = 'TECH' | 'PERSONAL' | 'KEYS' | 'OTHER';
 export type Item = {
   id: string;
   name: string;

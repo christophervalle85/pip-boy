@@ -11,7 +11,7 @@ The casing has ribbed side grips, fasteners, a recessed screen, and a working il
 ## What works
 
 - **STAT** — character stats, S.P.E.C.I.A.L. attributes, health/radiation readouts, and a simple survival simulation.
-- **INV** — browse a personal everyday-carry inventory with two individually cataloged MacBooks, a wallet containing $34.53 cash, car keys, a house key, and AirPods. Filter the belongings by Tech, Personal, or Keys.
+- **INV** — browse and manage everyday belongings. Add, edit, and remove personal items using a Pip-Boy-styled editor, with categories, quantity, descriptions, readouts, and optional cash amounts. Starts with two MacBooks, a wallet containing $34.53, car keys, a house key, and AirPods.
 - **DATA** — track quests and mark objectives as completed.
 - **MAP** — pan/zoom across all five NYC boroughs on OpenStreetMap, inspect real MTA subway stations and the nearest station to the viewport center, and scan the most recent geolocated NYC 311 reports (up to 80 from the last seven days). Click markers or the nearby data list for details.
 - **RADIO** — tune three stations playing original synthesized ambient signals in your browser (no commercial music).
@@ -22,6 +22,12 @@ The casing has ribbed side grips, fasteners, a recessed screen, and a working il
 ## Everyday-carry inventory
 
 MacBooks are separate inventory entries so both are visible individually. The wallet records **$34.53** in cash, exactly as requested. Device models, battery percentages, key details, and unprovided prices are intentionally not invented. This is a personal property log, so these items have descriptions rather than Fallout-style consume or equip actions. The fantasy STAT tab remains a simulation, with a direct **RESTORE HP** test button instead of an unavailable Stimpak.
+
+## Managing your inventory
+
+From the **INV** tab, press **ADD ITEM** to register a belonging. Select an existing item and press **EDIT ITEM** to update its details. **REMOVE** opens a confirmation before deletion; it never erases an item on the first click. Each entry has a name, category (Tech, Personal, Keys, or Other), quantity, short Pip-Boy readout, description, and an optional cash amount (useful for your wallet). You can leave a description or readout blank and the app supplies a generic one.
+
+Inventory edits save automatically to your browser's local storage, alongside the character and quest data. There is no account, sync, or server-side backup: clearing site data or changing browsers removes the local save. Restarting the Pip-Boy does not clear your inventory. Resetting the entire save from settings restores the six default belongings.
 
 ## Run locally
 
