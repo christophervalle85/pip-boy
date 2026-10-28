@@ -2,6 +2,12 @@
 
 A Fallout-inspired personal information processor built with React, TypeScript, and Vite. An original fan-made UI with glowing monochrome styling and fully interactive tabs. This is an unofficial project, not affiliated with Bethesda or Vault-Tec.
 
+## Power-on experience
+
+When you open the app, the Pip-Boy now runs through an animated hardware startup and system diagnostics before opening the STAT tab. You can skip startup, turn the device off and on using its power button, or select **REBOOT** in the settings panel. Restarting does **not** erase your saved game. Reduced-motion system preferences bypass the boot animation.
+
+The casing has ribbed side grips, fasteners, a recessed screen, and a working illuminated power control.
+
 ## What works
 
 - **STAT** — character stats, S.P.E.C.I.A.L. attributes, health/radiation readouts, and a simple survival simulation.

@@ -8,9 +8,11 @@ import {
   initialGame, loadGame, saveGame, special, stations,
   type GameState, type Item, type Tab,
 } from './data';
+import BootScreen, { BOOT_CHECKS } from './BootScreen';
 
 const TABS: Tab[] = ['STAT', 'INV', 'DATA', 'MAP', 'RADIO'];
 const FILTERS = ['ALL', 'WEAPONS', 'APPAREL', 'AID', 'MISC'] as const;
+type PowerState = 'booting' | 'ready' | 'off';
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));
 
 function Meter({ label, value, max, suffix = '', small = false }: {
@@ -126,19 +128,37 @@ export default function App() {
   const [selectedLocation, setSelectedLocation] = useState('bunker');
   const [amber, setAmber] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [powerState, setPowerState] = useState<PowerState>('booting');
+  const [bootStep, setBootStep] = useState(0);
   const [notice, setNotice] = useState('ALL SYSTEMS NOMINAL');
   const radio = useRadio();
 
   useEffect(() => saveGame(game), [game]);
   useEffect(() => {
+    if (powerState !== 'booting') return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setPowerState('ready');
+      return;
+    }
+    const timers = BOOT_CHECKS.map((_, index) => window.setTimeout(() => setBootStep(index + 1), 560 + index * 390));
+    const ready = window.setTimeout(() => {
+      setPowerState('ready');
+      setNotice('ALL SYSTEMS NOMINAL');
+    }, 560 + BOOT_CHECKS.length * 390 + 500);
+    return () => {
+      timers.forEach(window.clearTimeout);
+      window.clearTimeout(ready);
+    };
+  }, [powerState]);
+  useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.altKey || event.metaKey || event.ctrlKey || ['INPUT', 'TEXTAREA', 'SELECT'].includes((event.target as HTMLElement).tagName)) return;
-      if (event.key >= '1' && event.key <= '5') setTab(TABS[Number(event.key) - 1]);
+      if (powerState === 'ready' && event.key >= '1' && event.key <= '5') setTab(TABS[Number(event.key) - 1]);
       if (event.key === 'Escape') setSettingsOpen(false);
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [powerState]);
 
   const inform = (message: string) => setNotice(message);
   const useItem = (item: Item) => {
@@ -175,6 +195,23 @@ export default function App() {
   const carryWeight = game.inventory.reduce((sum, item) => sum + (item.count * item.weight), 0);
   const xpToLevel = 1000;
 
+  const reboot = () => {
+    radio.setPlaying(false);
+    setSettingsOpen(false);
+    setBootStep(0);
+    setPowerState('booting');
+  };
+  const togglePower = () => {
+    if (powerState === 'off') {
+      setBootStep(0);
+      setPowerState('booting');
+    } else {
+      radio.setPlaying(false);
+      setSettingsOpen(false);
+      setPowerState('off');
+    }
+  };
+
   const reset = () => {
     setGame(structuredClone(initialGame));
     setSelectedItem('pistol');
@@ -185,20 +222,23 @@ export default function App() {
   };
 
   return (
-    <div className={`page ${amber ? 'theme-amber' : ''}`}>
+    <div className={`page ${amber ? 'theme-amber' : ''} ${powerState === 'off' ? 'page-off' : ''}`}>
       <div className="ambient-blob ambient-blob-one"/><div className="ambient-blob ambient-blob-two"/>
       <header className="page-header">
         <div className="brand-lockup"><div className="brand-mark"><Zap size={20} fill="currentColor"/></div><div><span>ROBCO INDUSTRIES</span><small>PERSONAL INFORMATION PROCESSOR</small></div></div>
-        <span className="build-label"><span className="online-dot"/> BUILD 0.1.0 — ONLINE</span>
+        <span className="build-label"><span className="online-dot"/> BUILD 0.2.0 — {powerState === 'ready' ? 'ONLINE' : powerState === 'booting' ? 'STARTING' : 'STANDBY'}</span>
       </header>
 
-      <main className="console-wrap">
+      <main className="console-wrap"><div className="side-grip side-grip-left" aria-hidden="true"><i/><i/><i/></div><div className="side-grip side-grip-right" aria-hidden="true"><i/><i/><i/></div>
         <div className="console-cap"><div className="screw"/><span>MODEL 3000 Mk IV</span><div className="grille"><i/><i/><i/><i/><i/><i/></div><div className="screw"/></div>
         <div className="console">
-          <div className="console-top"><span className="stamped">PIP-BOY <strong>3000</strong></span><span className="console-series">GENERAL PURPOSE COMPUTER<br/>PERSONAL EDITION / 2077</span><div className="power-indicator"><span/> PWR</div></div>
+          <div className="console-top"><span className="stamped">PIP-BOY <strong>3000</strong></span><span className="console-series">GENERAL PURPOSE COMPUTER<br/>PERSONAL EDITION / 2077</span><div className="power-unit"><div className={`power-indicator ${powerState === 'off' ? 'is-off' : powerState === 'booting' ? 'is-starting' : ''}`}><span/> PWR</div><button type="button" className="power-control" onClick={togglePower} aria-label={powerState === 'off' ? 'Power on Pip-Boy' : 'Power off Pip-Boy'} title={powerState === 'off' ? 'Power on' : 'Power off'}><Power size={17}/></button></div></div>
           <div className="screen-bezel">
-            <div className="screen">
+            <div className={`screen screen-${powerState === 'ready' ? 'online' : powerState}`}>
               <div className="scanlines" aria-hidden="true" />
+              {powerState === 'booting' && <BootScreen step={bootStep} onSkip={() => setPowerState('ready')} />}
+              {powerState === 'off' && <div className="power-off-panel"><Power size={28}/><strong>DISPLAY OFFLINE</strong><p>PRESS THE POWER BUTTON TO RESTART</p><button type="button" onClick={togglePower}><Power size={14}/> POWER ON</button></div>}
+              {powerState === 'ready' && (
               <div className="screen-content">
                 <div className="screen-meta"><span>ROBCO INDUSTRIES (TM)</span><span className="meta-right"><SignalBars/> SECURE LINK ESTABLISHED</span></div>
                 <nav className="tab-bar" aria-label="Pip-Boy main sections">
@@ -241,6 +281,7 @@ export default function App() {
                 </div>
                 <div className="screen-footer"><span><span className="tiny-block"/> {notice}</span><span>{tab === 'STAT' ? `XP ${game.character.xp} / ${xpToLevel}` : tab === 'MAP' ? `${game.locations.filter((loc) => loc.discovered).length} / ${game.locations.length} LOCATIONS` : 'VAULT-TEC OS 1.0'}</span></div>
               </div>
+              )}
             </div>
           </div>
           <div className="hardware-footer"><div className="hardware-controls"><div className="vent"><i/><i/><i/><i/><i/><i/><i/></div><button type="button" className="round-control" title="Toggle device settings" aria-label="Open settings" onClick={() => setSettingsOpen(true)}><Settings2 size={19}/></button><div className="hardware-legend"><span>CONFIG</span><small>ROTARY SELECTOR</small></div></div><div className="hardware-stamp">PROPERTY OF<br/><strong>VAULT-TEC</strong></div><div className="hardware-controls right-hardware"><span>BATTERY <strong>100%</strong></span><BatteryFull size={23}/><div className="screw"/></div></div>
@@ -248,9 +289,9 @@ export default function App() {
         <div className="console-foot"><div className="screw"/><span>DESIGNED FOR THE WORLD OF TOMORROW</span><div className="screw"/></div>
       </main>
 
-      <footer className="page-footer"><span><Power size={13}/> SYSTEM ACTIVE <span className="footer-separator">/</span> LOCAL STORAGE ENABLED</span><span>PRESS <kbd>1</kbd>–<kbd>5</kbd> TO SWITCH TABS</span></footer>
+      <footer className="page-footer"><span><Power size={13}/> {powerState === 'off' ? 'SYSTEM OFFLINE' : powerState === 'booting' ? 'STARTING UP' : 'SYSTEM ACTIVE'} <span className="footer-separator">/</span> LOCAL STORAGE ENABLED</span><span>PRESS <kbd>1</kbd>–<kbd>5</kbd> TO SWITCH TABS</span></footer>
 
-      {settingsOpen && <div className="modal-backdrop" onClick={() => setSettingsOpen(false)}><div className="settings-modal" role="dialog" aria-modal="true" aria-label="Pip-Boy settings" onClick={(event) => event.stopPropagation()}><div className="modal-header"><h2>SYSTEM CONFIGURATION</h2><button type="button" aria-label="Close settings" onClick={() => setSettingsOpen(false)}><Minus size={18}/></button></div><div className="setting-row"><div><strong>PHOSPHOR DISPLAY</strong><p>Change the monochrome display color.</p></div><button type="button" className="setting-toggle" onClick={() => setAmber(!amber)}>{amber ? 'AMBER' : 'GREEN'} <ChevronRight size={14}/></button></div><div className="setting-row"><div><strong>RESTORE DEFAULT SAVE</strong><p>Erase local character, item, quest, and map progress.</p></div><button type="button" className="setting-toggle danger" onClick={reset}><RotateCcw size={14}/> RESET</button></div><div className="settings-tip"><ArrowDownToLine size={17}/> Progress saves automatically in this browser. Nothing is uploaded.</div></div></div>}
+      {settingsOpen && <div className="modal-backdrop" onClick={() => setSettingsOpen(false)}><div className="settings-modal" role="dialog" aria-modal="true" aria-label="Pip-Boy settings" onClick={(event) => event.stopPropagation()}><div className="modal-header"><h2>SYSTEM CONFIGURATION</h2><button type="button" aria-label="Close settings" onClick={() => setSettingsOpen(false)}><Minus size={18}/></button></div><div className="setting-row"><div><strong>PHOSPHOR DISPLAY</strong><p>Change the monochrome display color.</p></div><button type="button" className="setting-toggle" onClick={() => setAmber(!amber)}>{amber ? 'AMBER' : 'GREEN'} <ChevronRight size={14}/></button></div><div className="setting-row"><div><strong>RESTART SYSTEM</strong><p>Replay startup diagnostics without changing saved progress.</p></div><button type="button" className="setting-toggle" onClick={reboot}><RotateCcw size={14}/> REBOOT</button></div><div className="setting-row"><div><strong>RESTORE DEFAULT SAVE</strong><p>Erase local character, item, quest, and map progress.</p></div><button type="button" className="setting-toggle danger" onClick={reset}><RotateCcw size={14}/> RESET</button></div><div className="settings-tip"><ArrowDownToLine size={17}/> Progress saves automatically in this browser. Nothing is uploaded.</div></div></div>}
     </div>
   );
 }
