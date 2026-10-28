@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState, type ElementRef, type ReactNode, type RefObject } from 'react';
 import { Canvas, ThreeEvent, useThree } from '@react-three/fiber';
 import { Html, OrbitControls, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
@@ -26,8 +26,16 @@ function Asset({ display, activeTab, onTabChange, onPower }: Pick<Props, 'displa
     const copy = scene.clone(true);
     copy.traverse((child) => {
       if (child instanceof THREE.Mesh) {
-        // Replace the baked, noninteractive CRT glass with our actual React interface.
-        if (child.name.startsWith('Screen_low_')) child.visible = false;
+        // The textured GLB's original screen is curved and closes the casing.
+        // Keep it as an opaque dark backing instead of removing it: otherwise
+        // the wearer can see into/through the empty casing at oblique angles.
+        if (child.name.startsWith('Screen_low_')) {
+          child.material = new THREE.MeshBasicMaterial({
+            color: '#06130b',
+            side: THREE.DoubleSide,
+            depthWrite: true,
+          });
+        }
         child.castShadow = false;
         child.receiveShadow = false;
       }
@@ -71,9 +79,11 @@ function Asset({ display, activeTab, onTabChange, onPower }: Pick<Props, 'displa
           onPointerOver={onHardwareHover}
           onPointerOut={() => { document.body.style.cursor = ''; }}
         />
-        <mesh position={[0.266, 0.18, -1.055]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[3.06, 2.19]} />
-          <meshBasicMaterial color="#07130a" />
+        {/* An opaque, double-sided underlay slightly behind the HTML screen
+            ensures no daylight/gaps appear near the curved CRT's edges. */}
+        <mesh position={[0.266, 0.191, -1.055]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[3.31, 2.40]} />
+          <meshBasicMaterial color="#06130b" side={THREE.DoubleSide} depthWrite />
         </mesh>
         <Html
           transform
@@ -81,15 +91,16 @@ function Asset({ display, activeTab, onTabChange, onPower }: Pick<Props, 'displa
           // Drei's transform mode scales CSS pixels by (distanceFactor || 10) / 400.
           // With the previous default of 10, our 900px UI was shrunk by 40x,
           // appearing as a single green speck in the middle of the CRT.
-          // At 400, the 0.00335 mesh scale maps 900px to 3.015 GLB units,
-          // nearly matching the physical screen opening (~3.06 units).
+          // At distanceFactor 400, CSS pixels map to model units via scale.
+          // Original GLB screen bounds: x -1.348..1.881 (3.229 units),
+          // z -2.216..0.105 (2.321 units). Overfill by ~1% to avoid gaps.
           distanceFactor={400}
           rotation={[-Math.PI / 2, 0, 0]}
-          position={[0.266, 0.215, -1.055]}
-          scale={0.00335}
+          position={[0.266, 0.232, -1.055]}
+          scale={0.00363}
           className="imported-live-screen"
           zIndexRange={[12, 2]}
-          style={{ width: '900px', height: '615px', pointerEvents: 'auto' }}
+          style={{ width: '900px', height: '648px', pointerEvents: 'auto' }}
         >
           <div className="imported-screen-wrapper">{display}</div>
         </Html>
@@ -98,32 +109,54 @@ function Asset({ display, activeTab, onTabChange, onPower }: Pick<Props, 'displa
   );
 }
 
-function CameraFit({ token }: { token: number }) {
+type OrbitInstance = ElementRef<typeof OrbitControls>;
+
+function CameraFit({
+  token, stabilized, controlsRef,
+}: {
+  token: number;
+  stabilized: boolean;
+  controlsRef: RefObject<OrbitInstance>;
+}) {
   const { camera, size, invalidate } = useThree();
+
   useEffect(() => {
     if (!(camera instanceof THREE.PerspectiveCamera)) return;
+
     const fov = camera.fov * Math.PI / 180;
     const aspect = Math.max(0.4, size.width / Math.max(size.height, 1));
-    // Measured from the supplied GLB after its 90-degree rotation:
-    // 6.354 wide × 5.105 high × 3.437 deep (not guessed from a render).
-    // Keep a little clearance for the parts of the shell closest to the camera.
-    const targetFill = 0.83;
+    // Original imported model bounds after rotation: 6.354 × 5.105 units.
+    // Give the locked view extra room for the screen and surrounding hardware.
+    const targetFill = stabilized ? 0.77 : 0.83;
     const fitHeight = 5.1054 / (2 * Math.tan(fov / 2) * targetFill);
     const fitWidth = 6.3544 / (2 * Math.tan(fov / 2) * aspect * targetFill);
     const distance = Math.max(fitHeight, fitWidth) + 1.1;
-    camera.position.set(0, 0, distance);
-    camera.lookAt(0, 0, 0);
+    const focus = new THREE.Vector3(0, stabilized ? 0.32 : 0, 0);
+
+    // Reset the actual OrbitControls state, not just the camera transform.
+    // This clears any pending drag/damping so STABILIZE really locks front-on.
+    const controls = controlsRef.current;
+    controls?.reset();
+    controls?.target.copy(focus);
+
+    camera.position.set(focus.x, focus.y, distance);
+    camera.lookAt(focus);
     camera.updateProjectionMatrix();
+    controls?.update();
+    controls?.saveState();
     invalidate();
-  }, [camera, size.width, size.height, invalidate, token]);
+  }, [camera, controlsRef, invalidate, size.height, size.width, stabilized, token]);
+
   return null;
 }
 
-function LoadedScene({ display, activeTab, onTabChange, onPower, resetToken }: Props & { resetToken: number }) {
+function LoadedScene({
+  display, activeTab, onTabChange, onPower, resetToken, stabilized,
+}: Props & { resetToken: number; stabilized: boolean }) {
+  const controlsRef = useRef<OrbitInstance>(null);
+
   return (
     <Canvas
-      // Absolutely fill the entire flex frame. A percentage-height Canvas
-      // collapsed to a short strip at the top on desktop (the screenshot bug).
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}
       dpr={[1, 1.75]}
       camera={{ position: [0, 0, 10], fov: 35, near: 0.05, far: 80 }}
@@ -138,7 +171,11 @@ function LoadedScene({ display, activeTab, onTabChange, onPower, resetToken }: P
         <Asset display={display} activeTab={activeTab} onTabChange={onTabChange} onPower={onPower} />
       </Suspense>
       <OrbitControls
+        ref={controlsRef}
         makeDefault
+        enabled={!stabilized}
+        enableRotate={!stabilized}
+        enableZoom={!stabilized}
         enablePan={false}
         enableDamping
         dampingFactor={0.08}
@@ -149,7 +186,11 @@ function LoadedScene({ display, activeTab, onTabChange, onPower, resetToken }: P
         minAzimuthAngle={-Math.PI * 0.46}
         maxAzimuthAngle={Math.PI * 0.46}
       />
-      <CameraFit token={resetToken} />
+      <CameraFit
+        token={resetToken}
+        stabilized={stabilized}
+        controlsRef={controlsRef}
+      />
     </Canvas>
   );
 }
@@ -157,6 +198,7 @@ function LoadedScene({ display, activeTab, onTabChange, onPower, resetToken }: P
 export default function PipBoyImported3D(props: Props) {
   const [available, setAvailable] = useState<boolean | null>(null);
   const [resetToken, setResetToken] = useState(0);
+  const [stabilized, setStabilized] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
     fetch(MODEL_PATH, { method: 'HEAD', signal: controller.signal })
@@ -197,7 +239,7 @@ export default function PipBoyImported3D(props: Props) {
         <span className="three-stage-mode">MODEL: JULIEN SCHOOTS</span>
       </div>
       <div className="three-canvas-frame imported-canvas-frame">
-        <LoadedScene {...props} resetToken={resetToken} />
+        <LoadedScene {...props} resetToken={resetToken} stabilized={stabilized} />
         <div className="three-canvas-corner top-left" aria-hidden="true" />
         <div className="three-canvas-corner top-right" aria-hidden="true" />
         <div className="three-canvas-corner bottom-left" aria-hidden="true" />
@@ -205,11 +247,29 @@ export default function PipBoyImported3D(props: Props) {
       </div>
       <div className="three-stage-toolbar">
         <div className="three-control-hint">
-          <span>↔ DRAG OUTSIDE SCREEN</span>
-          <span>↕ SCROLL TO ZOOM</span>
-          <span>CLICK THE MODEL'S KNOBS</span>
+          {stabilized ? (
+            <>
+              <span>● FRONT VIEW LOCKED</span>
+              <span>CLICK OR SCROLL INSIDE THE SCREEN TO USE YOUR PIP-BOY</span>
+            </>
+          ) : (
+            <>
+              <span>↔ DRAG OUTSIDE SCREEN</span>
+              <span>↕ SCROLL TO ZOOM</span>
+              <span>CLICK THE MODEL'S KNOBS</span>
+            </>
+          )}
         </div>
         <div className="three-stage-actions">
+          <button
+            type="button"
+            className={stabilized ? 'three-stabilize-action active' : 'three-stabilize-action'}
+            onClick={() => setStabilized((value) => !value)}
+            aria-pressed={stabilized}
+            title={stabilized ? 'Allow free 3D rotation again' : 'Snap straight ahead and lock rotation for easier screen interaction'}
+          >
+            {stabilized ? '✓ STABILIZED · UNLOCK' : '◎ STABILIZE'}
+          </button>
           <button type="button" onClick={() => setResetToken((n) => n + 1)}>RESET CAMERA</button>
           <button type="button" className="three-flat-action" onClick={props.onFlatView}>FOCUS SCREEN / 2D</button>
         </div>
