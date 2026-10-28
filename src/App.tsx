@@ -11,7 +11,7 @@ import {
 import BootScreen, { BOOT_CHECKS } from './BootScreen';
 import NYCMap from './NYCMap';
 import InventoryEditor from './InventoryEditor';
-import PipBoy3D from './PipBoy3D';
+import PipBoyImported3D from './PipBoyImported3D';
 
 const TABS: Tab[] = ['STAT', 'INV', 'DATA', 'MAP', 'RADIO'];
 const FILTERS = ['ALL', 'TECH', 'PERSONAL', 'KEYS', 'OTHER'] as const;
@@ -351,7 +351,7 @@ export default function App() {
       <header className="page-header">
         <div className="brand-lockup"><div className="brand-mark" aria-label="Pip-Boy logo"><Zap size={20} fill="currentColor"/></div></div>
         <div className="view-header-actions">
-          <span className="build-label"><span className="online-dot"/> BUILD 0.5.0 — {powerState === 'ready' ? 'ONLINE' : powerState === 'booting' ? 'STARTING' : 'STANDBY'}</span>
+          <span className="build-label"><span className="online-dot"/> BUILD 0.6.0 — {powerState === 'ready' ? 'ONLINE' : powerState === 'booting' ? 'STARTING' : 'STANDBY'}</span>
           <button type="button" className={'view-control ' + (viewMode === '3d' ? 'current-view' : '')} onClick={() => setViewMode(viewMode === '3d' ? 'flat' : '3d')} aria-pressed={viewMode === '3d'}>
             {viewMode === '3d' ? <Monitor size={14} /> : <Box size={14} />} {viewMode === '3d' ? '2D VIEW' : '3D VIEW'}
           </button>
@@ -361,7 +361,7 @@ export default function App() {
       </header>
 
       {viewMode === '3d' ? (
-        <PipBoy3D
+        <PipBoyImported3D
           display={display}
           activeTab={tab}
           onTabChange={setTab}

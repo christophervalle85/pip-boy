@@ -2,6 +2,20 @@
 
 A Fallout-inspired personal information processor built with React, TypeScript, Vite, Three.js, and React Three Fiber. An original fan-made UI with glowing monochrome styling and fully interactive tabs. This is an unofficial project, not affiliated with Bethesda or Vault-Tec.
 
+## Textured Fallout 3 model integration (v0.6.0)
+
+The user-supplied [Pip-Boy Fallout 3 Concept](https://sketchfab.com/3d-models/pip-boy-fallout-3-concept-21bfe974c2564ebabcc974b39a2a1f00) model by **Julien Schoots (WizOfFab)** replaces the original procedural shell once its GLB file is installed. The source is licensed **Creative Commons Attribution 4.0**. The optimized web copy changes its textures from 4096px PNGs to 2048px JPEGs, retaining the original geometry. Credit and license details: [ASSET_CREDITS.md](ASSET_CREDITS.md).
+
+**Install the GLB (one time):**
+
+1. Obtain the optimized file `pip-boy-fallout-3-web.glb` generated from your downloaded model.
+2. Add it at **`public/models/pip-boy-fallout-3-web.glb`** in this repository, using GitHub's upload-file interface or your local working copy.
+3. If working locally, restart or refresh the app after adding the file. The exact filename and path matter.
+
+The 3D renderer detects the asset on load and uses the imported geometry. Until it is present, the earlier procedural 3D view still works, with a missing-asset notice. The original flat view is also preserved. The imported model is automatically recentered and fitted to the viewport; the screen glass is replaced by a real interactive DOM screen. Existing inventory editing, subway/311 map, radio, save data, and system settings continue to use the same application state. The model's named rotary knobs map to radio, tab switching, and power controls. Screen focusing uses the existing **2D VIEW** control.
+
+This is an independent fan project. The artist's CC BY license covers their contribution, not independent rights to Fallout-related intellectual property.
+
 ## Full 3D device (v0.5.0)
 
 The site now opens as a rotatable **3D Pip-Boy** on compatible desktop browsers, with a modeled olive-green casing, wrist cuff, recessed screen, screws, vents, tuner, power knob and clickable tab buttons. The actual live React display—including **STAT, INV, DATA, NYC MAP and RADIO**—is mounted on the virtual device screen through Drei HTML transforms; it is **not** a screenshot or a fake 3D image.
