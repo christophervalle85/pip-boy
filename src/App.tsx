@@ -225,7 +225,7 @@ export default function App() {
     <div className={`page ${amber ? 'theme-amber' : ''} ${powerState === 'off' ? 'page-off' : ''}`}>
       <div className="ambient-blob ambient-blob-one"/><div className="ambient-blob ambient-blob-two"/>
       <header className="page-header">
-        <div className="brand-lockup"><div className="brand-mark"><Zap size={20} fill="currentColor"/></div><div><span>ROBCO INDUSTRIES</span><small>PERSONAL INFORMATION PROCESSOR</small></div></div>
+        <div className="brand-lockup"><div className="brand-mark" aria-label="Pip-Boy logo"><Zap size={20} fill="currentColor"/></div></div>
         <span className="build-label"><span className="online-dot"/> BUILD 0.2.0 — {powerState === 'ready' ? 'ONLINE' : powerState === 'booting' ? 'STARTING' : 'STANDBY'}</span>
       </header>
 
