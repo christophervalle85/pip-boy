@@ -1,7 +1,8 @@
 import { Suspense, useEffect, useMemo, useRef, useState, type ElementRef, type ReactNode, type RefObject } from 'react';
-import { Canvas, ThreeEvent, useThree } from '@react-three/fiber';
+import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
 import { Html, OrbitControls, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
+import { Info, RotateCcw, ScanFace, Unlock } from 'lucide-react';
 import type { Tab } from './data';
 import PipBoy3D from './PipBoy3D';
 import './pipboy-imported.css';
@@ -111,42 +112,117 @@ function Asset({ display, activeTab, onTabChange, onPower }: Pick<Props, 'displa
 
 type OrbitInstance = ElementRef<typeof OrbitControls>;
 
-function CameraFit({
-  token, stabilized, controlsRef,
+type CameraFlight = {
+  fromPosition: THREE.Vector3;
+  fromTarget: THREE.Vector3;
+  toPosition: THREE.Vector3;
+  toTarget: THREE.Vector3;
+  elapsed: number;
+  duration: number;
+};
+
+/**
+ * Both modes render the SAME interactive GLB, including the live HTML screen.
+ * Free mode starts in a three-quarter showcase view. Stabilize animates to a
+ * true front-facing close-up of the screen and locks OrbitControls.
+ */
+function CameraMotion({
+  stabilized, resetToken, controlsRef, onAnimating,
 }: {
-  token: number;
   stabilized: boolean;
+  resetToken: number;
   controlsRef: RefObject<OrbitInstance>;
+  onAnimating: (value: boolean) => void;
 }) {
   const { camera, size, invalidate } = useThree();
+  const initialized = useRef(false);
+  const flight = useRef<CameraFlight | null>(null);
 
   useEffect(() => {
     if (!(camera instanceof THREE.PerspectiveCamera)) return;
-
-    const fov = camera.fov * Math.PI / 180;
-    const aspect = Math.max(0.4, size.width / Math.max(size.height, 1));
-    // Original imported model bounds after rotation: 6.354 × 5.105 units.
-    // Give the locked view extra room for the screen and surrounding hardware.
-    const targetFill = stabilized ? 0.77 : 0.83;
-    const fitHeight = 5.1054 / (2 * Math.tan(fov / 2) * targetFill);
-    const fitWidth = 6.3544 / (2 * Math.tan(fov / 2) * aspect * targetFill);
-    const distance = Math.max(fitHeight, fitWidth) + 1.1;
-    const focus = new THREE.Vector3(0, stabilized ? 0.32 : 0, 0);
-
-    // Reset the actual OrbitControls state, not just the camera transform.
-    // This clears any pending drag/damping so STABILIZE really locks front-on.
+    const aspect = Math.max(0.4, size.width / Math.max(1, size.height));
+    const halfFovTan = Math.tan((camera.fov * Math.PI) / 360);
     const controls = controlsRef.current;
-    controls?.reset();
-    controls?.target.copy(focus);
+    if (!controls) return;
 
-    camera.position.set(focus.x, focus.y, distance);
-    camera.lookAt(focus);
-    camera.updateProjectionMatrix();
-    controls?.update();
-    controls?.saveState();
+    // GLB bounds after rotation: 6.354 × 5.105. The initial free camera
+    // frames the entire object at a flattering angle.
+    const freeDistance = Math.max(
+      5.1054 / (2 * halfFovTan * 0.72),
+      6.3544 / (2 * halfFovTan * aspect * 0.78),
+    ) + 1.2;
+    const freeTarget = new THREE.Vector3(0, 0.16, 0);
+    const freePosition = new THREE.Vector3(
+      freeDistance * 0.31,
+      freeTarget.y + freeDistance * 0.105,
+      freeDistance * 0.946,
+    );
+
+    // In the GLB's world coordinates, the CRT is centered around
+    // x=0.336, y=0.808, z=1.42. Aim the camera at that actual display,
+    // moving close enough to make the interactive UI comfortably legible.
+    // Fit to both width and height so narrower windows remain usable.
+    const screenTarget = new THREE.Vector3(0.336, 0.808, 0);
+    const screenDistance = Math.max(
+      2.35 / (2 * halfFovTan * 0.84),
+      3.3 / (2 * halfFovTan * aspect * 0.80),
+    ) + 1.42;
+    const closePosition = new THREE.Vector3(
+      screenTarget.x, screenTarget.y, screenDistance,
+    );
+
+    const toPosition = stabilized ? closePosition : freePosition;
+    const toTarget = stabilized ? screenTarget : freeTarget;
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    const alreadyThere = camera.position.distanceTo(toPosition) < 0.015 &&
+      controls.target.distanceTo(toTarget) < 0.015;
+    if (!initialized.current || reducedMotion || alreadyThere) {
+      flight.current = null;
+      camera.position.copy(toPosition);
+      controls.target.copy(toTarget);
+      camera.lookAt(controls.target);
+      controls.update();
+      camera.updateProjectionMatrix();
+      initialized.current = true;
+      onAnimating(false);
+      invalidate();
+      return;
+    }
+
+    // Preserve the current user-controlled orbit as the starting pose.
+    // Smoothstep eases the camera's position AND its look-at target,
+    // making the 3D Pip-Boy rotate and approach without a hard cut.
+    flight.current = {
+      fromPosition: camera.position.clone(),
+      fromTarget: controls.target.clone(),
+      toPosition, toTarget,
+      elapsed: 0,
+      duration: 0.95,
+    };
+    onAnimating(true);
     invalidate();
-  }, [camera, controlsRef, invalidate, size.height, size.width, stabilized, token]);
+  }, [camera, size.width, size.height, stabilized, resetToken, controlsRef, onAnimating, invalidate]);
 
+  useFrame((_, delta) => {
+    const current = flight.current;
+    const controls = controlsRef.current;
+    if (!current || !controls) return;
+
+    current.elapsed = Math.min(current.duration, current.elapsed + Math.min(delta, 0.05));
+    const t = current.elapsed / current.duration;
+    const ease = t * t * (3 - 2 * t);
+    camera.position.lerpVectors(current.fromPosition, current.toPosition, ease);
+    controls.target.lerpVectors(current.fromTarget, current.toTarget, ease);
+    controls.update();
+    invalidate();
+
+    if (t >= 1) {
+      flight.current = null;
+      controls.saveState();
+      onAnimating(false);
+    }
+  });
   return null;
 }
 
@@ -154,12 +230,13 @@ function LoadedScene({
   display, activeTab, onTabChange, onPower, resetToken, stabilized,
 }: Props & { resetToken: number; stabilized: boolean }) {
   const controlsRef = useRef<OrbitInstance>(null);
+  const [animating, setAnimating] = useState(false);
 
   return (
     <Canvas
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}
       dpr={[1, 1.75]}
-      camera={{ position: [0, 0, 10], fov: 35, near: 0.05, far: 80 }}
+      camera={{ position: [0, 0, 12], fov: 35, near: 0.05, far: 100 }}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
     >
       <ambientLight intensity={1.3} />
@@ -173,23 +250,24 @@ function LoadedScene({
       <OrbitControls
         ref={controlsRef}
         makeDefault
-        enabled={!stabilized}
-        enableRotate={!stabilized}
-        enableZoom={!stabilized}
+        enabled={!stabilized && !animating}
+        enableRotate={!stabilized && !animating}
+        enableZoom={!stabilized && !animating}
         enablePan={false}
         enableDamping
         dampingFactor={0.08}
-        minDistance={6.5}
-        maxDistance={26}
-        minPolarAngle={0.35}
+        minDistance={5.3}
+        maxDistance={29}
+        minPolarAngle={0.30}
         maxPolarAngle={Math.PI - 0.35}
         minAzimuthAngle={-Math.PI * 0.46}
         maxAzimuthAngle={Math.PI * 0.46}
       />
-      <CameraFit
-        token={resetToken}
+      <CameraMotion
         stabilized={stabilized}
+        resetToken={resetToken}
         controlsRef={controlsRef}
+        onAnimating={setAnimating}
       />
     </Canvas>
   );
@@ -199,6 +277,7 @@ export default function PipBoyImported3D(props: Props) {
   const [available, setAvailable] = useState<boolean | null>(null);
   const [resetToken, setResetToken] = useState(0);
   const [stabilized, setStabilized] = useState(false);
+  const [creditsOpen, setCreditsOpen] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
     fetch(MODEL_PATH, { method: 'HEAD', signal: controller.signal })
@@ -233,52 +312,66 @@ export default function PipBoyImported3D(props: Props) {
   }
 
   return (
-    <main className="three-device-stage imported-device-stage" aria-label="Textured interactive 3D Pip-Boy model by Julien Schoots">
-      <div className="three-stage-topline">
-        <span><span className="three-live-dot" /> PIP-BOY 3000 / TEXTURED FIELD UNIT</span>
-        <span className="three-stage-mode">MODEL: JULIEN SCHOOTS</span>
-      </div>
+    <main
+      className={'three-device-stage imported-device-stage' + (stabilized ? ' is-stabilized' : '')}
+      aria-label="Interactive 3D Pip-Boy"
+    >
       <div className="three-canvas-frame imported-canvas-frame">
         <LoadedScene {...props} resetToken={resetToken} stabilized={stabilized} />
-        <div className="three-canvas-corner top-left" aria-hidden="true" />
-        <div className="three-canvas-corner top-right" aria-hidden="true" />
-        <div className="three-canvas-corner bottom-left" aria-hidden="true" />
-        <div className="three-canvas-corner bottom-right" aria-hidden="true" />
       </div>
-      <div className="three-stage-toolbar">
-        <div className="three-control-hint">
-          {stabilized ? (
-            <>
-              <span>● FRONT VIEW LOCKED</span>
-              <span>CLICK OR SCROLL INSIDE THE SCREEN TO USE YOUR PIP-BOY</span>
-            </>
-          ) : (
-            <>
-              <span>↔ DRAG OUTSIDE SCREEN</span>
-              <span>↕ SCROLL TO ZOOM</span>
-              <span>CLICK THE MODEL'S KNOBS</span>
-            </>
-          )}
-        </div>
-        <div className="three-stage-actions">
+
+      <div className="pipboy-viewport-controls">
+        <button
+          type="button"
+          className={'pipboy-stabilize-button' + (stabilized ? ' is-active' : '')}
+          onClick={() => setStabilized((value) => !value)}
+          aria-pressed={stabilized}
+          title={stabilized ? 'Unlock the camera and orbit the Pip-Boy' : 'Animate to a closer front view and lock the 3D camera'}
+        >
+          {stabilized ? <Unlock size={16} aria-hidden="true" /> : <ScanFace size={16} aria-hidden="true" />}
+          {stabilized ? 'UNLOCK 3D' : 'STABILIZE VIEW'}
+        </button>
+        {!stabilized && (
           <button
             type="button"
-            className={stabilized ? 'three-stabilize-action active' : 'three-stabilize-action'}
-            onClick={() => setStabilized((value) => !value)}
-            aria-pressed={stabilized}
-            title={stabilized ? 'Allow free 3D rotation again' : 'Snap straight ahead and lock rotation for easier screen interaction'}
+            className="pipboy-reset-button"
+            onClick={() => setResetToken((n) => n + 1)}
+            aria-label="Reset 3D camera"
+            title="Reset 3D camera"
           >
-            {stabilized ? '✓ STABILIZED · UNLOCK' : '◎ STABILIZE'}
+            <RotateCcw size={16} aria-hidden="true" />
           </button>
-          <button type="button" onClick={() => setResetToken((n) => n + 1)}>RESET CAMERA</button>
-          <button type="button" className="three-flat-action" onClick={props.onFlatView}>FOCUS SCREEN / 2D</button>
-        </div>
+        )}
       </div>
-      <a className="imported-model-credit"
-         href="https://sketchfab.com/3d-models/pip-boy-fallout-3-concept-21bfe974c2564ebabcc974b39a2a1f00"
-         target="_blank" rel="noopener noreferrer">
-        3D MODEL: JULIEN SCHOOTS · CC BY 4.0 · MODIFIED TEXTURE RESOLUTION
-      </a>
+
+      <div className="pipboy-credits">
+        <button
+          className="pipboy-credits-button"
+          type="button"
+          aria-label="About the 3D model and its license"
+          aria-controls="pipboy-credits-panel"
+          aria-expanded={creditsOpen}
+          onClick={() => setCreditsOpen((open) => !open)}
+          title="Model information and attribution"
+        >
+          <Info size={19} aria-hidden="true" />
+        </button>
+        {creditsOpen && (
+          <div className="pipboy-credits-panel" id="pipboy-credits-panel" role="region" aria-label="3D model attribution">
+            <strong>3D MODEL CREDIT</strong>
+            <p>
+              <a href="https://sketchfab.com/3d-models/pip-boy-fallout-3-concept-21bfe974c2564ebabcc974b39a2a1f00"
+                target="_blank" rel="noopener noreferrer">Pip-Boy Fallout 3 Concept by Julien Schoots (WizOfFab)</a>
+            </p>
+            <p>
+              Licensed under <a href="https://creativecommons.org/licenses/by/4.0/"
+                target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.
+              Textures were resized and converted for faster web loading. The original screen was adapted for an interactive interface.
+            </p>
+            <button type="button" className="pipboy-credits-close" onClick={() => setCreditsOpen(false)}>CLOSE</button>
+          </div>
+        )}
+      </div>
     </main>
   );
 }

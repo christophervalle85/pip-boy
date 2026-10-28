@@ -1,98 +1,69 @@
-/* The original textured Fallout 3 concept GLB, positioned to fit the camera. */
-.imported-device-stage { min-height: 590px; height: calc(100vh - 138px); max-height: 1000px; }
-.imported-canvas-frame {
-  background:
-    radial-gradient(ellipse 53% 61% at 50% 51%, #3c4e3c 0%, #1b2c20 57%, #0a160f 100%),
-    repeating-linear-gradient(90deg, #a5cfaa05 0px, #a5cfaa05 1px, transparent 1px, transparent 36px);
-}
-.imported-screen-wrapper {
-  width: 900px;
-  height: 648px;
+/* The textured 3D Pip-Boy is the experience, not an exhibit inside a card. */
+/* With the decorative brand removed, align the single control group right
+   in the optional flat view as well as in the immersive 3D view. */
+.page .page-header { justify-content: flex-end; }
+
+.page.page-three {
+  height: 100svh;
+  min-height: 480px;
+  padding: 0;
   overflow: hidden;
-  border-radius: 14px;
-  background: #06180d;
-  /* The geometry is 3.229 × 2.321 units; the CSS display overfills
-     it by ~1% to close gaps without escaping the beveled bezel. */
-  clip-path: inset(0 round 14px);
+  background: radial-gradient(ellipse 65% 76% at 51% 53%, #293d2c 0%, #152117 58%, #080f0b 100%);
 }
-.imported-screen-wrapper .screen {
-  box-sizing: border-box;
-  width: 900px;
-  height: 648px !important;
-  min-height: 648px !important;
-  border-radius: 14px;
-  box-shadow: inset 0 0 62px #000a, 0 0 20px #152e1b7a;
+.page-three .ambient-blob { opacity: .09; }
+.page-three .page-header {
+  position: absolute;
+  top: 20px;
+  right: 25px;
+  z-index: 30;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  justify-content: flex-end;
 }
-.imported-screen-wrapper .screen-content {
-  height: 648px !important;
-  min-height: 648px !important;
-  box-sizing: border-box;
-  padding: 20px 21px 14px !important;
-}
-.imported-screen-wrapper .screen-meta { font-size: 10px !important; letter-spacing: .13em !important; }
-.imported-screen-wrapper .screen-heading h1 { font-size: 20px !important; }
-.imported-screen-wrapper .tab { font-size: 15px !important; padding: 10px 11px 12px !important; }
-.imported-screen-wrapper .tab small { display: inline !important; }
-.imported-screen-wrapper .workspace { min-height: 0; }
-.imported-screen-wrapper .inventory-layout { min-height: 0; }
-.imported-screen-wrapper .boot-sequence,
-.imported-screen-wrapper .power-off-panel { height: 648px !important; }
-.imported-live-screen { pointer-events: auto; }
-.imported-live-screen .screen { user-select: auto; }
-.imported-model-credit {
-  display: inline-block;
-  align-self: flex-end;
-  margin-top: 3px;
-  color: #98b08c;
-  text-align: right;
-  font: 9px/1.4 Consolas, monospace;
-  letter-spacing: .02em;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-.imported-model-credit:hover { color: #d4e9bb; }
-.asset-loading {
-  width: 280px;
-  padding: 22px 18px;
-  color: #d4edc3;
-  background: #15281de8;
-  border: 1px solid #66805f;
-  text-align: center;
-  font: 12px Consolas, monospace;
-  white-space: nowrap;
-}
-.asset-fallback-wrap { width: min(100%, 1420px); display: flex; flex: 1; min-height: 0; flex-direction: column; }
-.asset-fallback-wrap > .three-device-stage { flex: 1; width: 100%; }
-.asset-fallback-note {
-  align-self: stretch;
+.page-three .view-header-actions { gap: 9px; }
+.page-three .view-control {
+  min-height: 36px;
   padding: 9px 12px;
-  border: 1px solid #977a4e;
-  color: #e9c88a;
-  background: #302a19d9;
-  font: 10px/1.5 Consolas, monospace;
-  text-align: center;
-  letter-spacing: .025em;
+  color: #d6e6c9;
+  background: #18251cdb;
+  border-color: #78907580;
+  box-shadow: 0 2px 18px #0006;
+  backdrop-filter: blur(12px);
 }
-@media (max-width: 900px) {
-  .imported-device-stage { min-height: 530px; height: calc(100svh - 110px); }
-  .imported-model-credit { font-size: 8px; }
-}
-@media (max-width: 600px) {
-  .imported-device-stage { min-height: 460px; height: calc(100svh - 155px); }
-  .imported-model-credit { text-align: center; align-self: center; }
-}
+.page-three .view-control:hover { background: #304733; color: #f4ffe8; }
 
-
-/*
- * The R3F Canvas is a div containing a canvas and Drei's Html portal.
- * Its old percentage height resolved against a flex item without a definite
- * height in Chrome, creating a tiny 3D viewport at the frame's top.
- * Absolute inset positioning makes the actual WebGL drawing buffer and
- * Html overlay use the same full-sized viewport.
- */
-.imported-canvas-frame {
+.imported-device-stage,
+.page-three .imported-device-stage {
   position: relative;
+  flex: 1;
+  display: block;
+  width: 100%;
+  max-width: none;
   min-height: 0;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+}
+.imported-canvas-frame,
+.page-three .imported-canvas-frame {
+  position: absolute;
+  inset: 0;
+  flex: none;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  isolation: auto;
+  box-shadow: none;
+  background:
+    radial-gradient(ellipse 66% 77% at 50% 51%, #334735 0%, #1b2e20 50%, #09120c 100%);
+}
+.imported-canvas-frame::before,
+.page-three .imported-canvas-frame::before {
+  background: radial-gradient(ellipse 75% 86% at center, transparent 41%, #03070470 100%);
 }
 .imported-canvas-frame > div:first-child {
   position: absolute !important;
@@ -107,39 +78,197 @@
   width: 100% !important;
   height: 100% !important;
 }
-.imported-live-screen,
-.imported-live-screen > div,
+
+/* Sized against the GLB's real curved CRT opening: 3.229 × 2.321 units.
+   Preserve the live DOM; it is not a rendered texture or a fake screenshot. */
 .imported-screen-wrapper {
+  width: 900px;
+  height: 648px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #06180d;
+  clip-path: inset(0 round 14px);
   backface-visibility: hidden;
 }
 .imported-screen-wrapper .screen {
+  box-sizing: border-box;
+  width: 900px;
+  height: 648px !important;
+  min-height: 648px !important;
+  border-radius: 14px;
   background: #071d0e;
   color: #b6fa8f;
+  box-shadow: inset 0 0 62px #000a, 0 0 20px #152e1b7a;
+}
+.imported-screen-wrapper .screen-content {
+  box-sizing: border-box;
+  height: 648px !important;
+  min-height: 648px !important;
+  padding: 20px 21px 14px !important;
+}
+.imported-screen-wrapper .screen-meta { font-size: 10px !important; letter-spacing: .13em !important; }
+.imported-screen-wrapper .screen-heading h1 { font-size: 20px !important; }
+.imported-screen-wrapper .tab { font-size: 15px !important; padding: 10px 11px 12px !important; }
+.imported-screen-wrapper .tab small { display: inline !important; }
+.imported-screen-wrapper .workspace,
+.imported-screen-wrapper .inventory-layout { min-height: 0; }
+.imported-screen-wrapper .boot-sequence,
+.imported-screen-wrapper .power-off-panel { height: 648px !important; }
+.imported-live-screen { pointer-events: auto; backface-visibility: hidden; }
+.imported-live-screen > div { backface-visibility: hidden; }
+.imported-live-screen .screen { user-select: auto; }
+
+/* One focused control group; no frame, status strip, corner decals or
+   competing 'focus to 2D' button. */
+.pipboy-viewport-controls {
+  position: absolute;
+  z-index: 25;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.pipboy-viewport-controls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 21px;
+  border: 1px solid #8fab83;
+  border-radius: 6px;
+  color: #d5edc5;
+  background: #1b3123e8;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 6px 28px #0008, inset 0 1px #d4eabb19;
+  font: 800 11px/1 Consolas, 'Courier New', monospace;
+  letter-spacing: .075em;
+  transition: background .2s, color .2s, border-color .2s, transform .2s;
+}
+.pipboy-viewport-controls button:hover {
+  border-color: #cdf4b4;
+  background: #355a39;
+  transform: translateY(-2px);
+}
+.pipboy-viewport-controls button:focus-visible,
+.pipboy-credits button:focus-visible {
+  outline: 2px solid #b9f69b;
+  outline-offset: 3px;
+}
+.pipboy-viewport-controls .pipboy-stabilize-button.is-active {
+  color: #142518;
+  background: #bde89a;
+  border-color: #bde89a;
+}
+.pipboy-viewport-controls .pipboy-stabilize-button.is-active:hover {
+  background: #dbf7c0;
+}
+.pipboy-viewport-controls .pipboy-reset-button {
+  width: 46px;
+  padding: 0;
+  background: #192a1dda;
 }
 
-/* Locked front view leaves the 3D casing visible while preventing accidental
-   rotation/zoom during mouse and keyboard interactions with the live display. */
-.three-stage-actions .three-stabilize-action {
-  border-color: #91a77d;
-  background: #253c2b;
-  color: #d0edb6;
-  min-width: 112px;
+/* Credit is accessible with one click, rather than always overlaid on the art.
+   Keep the full author link, CC license link, and changes in the panel. */
+.pipboy-credits {
+  position: absolute;
+  left: 24px;
+  bottom: 29px;
+  z-index: 28;
 }
-.three-stage-actions .three-stabilize-action.active {
-  border-color: #c0e4a0;
-  background: #b8e496;
-  color: #14261b;
+.pipboy-credits-button {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid #a4b79765;
+  border-radius: 50%;
+  color: #b8cbb1;
+  background: #11251aab;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 18px #0005;
 }
-.three-stage-actions .three-stabilize-action.active:hover {
-  background: #d0f0b2;
-  color: #14261b;
+.pipboy-credits-button:hover,
+.pipboy-credits-button[aria-expanded='true'] {
+  color: #d3f6b9;
+  background: #294833;
+  border-color: #a8d79a;
 }
-@media (max-width: 820px) {
-  .three-stage-toolbar { align-items: flex-start; }
-  .three-stage-actions { flex-wrap: wrap; justify-content: flex-end; }
-  .three-control-hint { max-width: 48%; }
+.pipboy-credits-panel {
+  position: absolute;
+  left: 0;
+  bottom: 52px;
+  width: min(360px, calc(100vw - 40px));
+  padding: 19px 19px 15px;
+  color: #cce2c2;
+  border: 1px solid #718a70;
+  border-radius: 9px;
+  background: #0d1c13f5;
+  box-shadow: 0 15px 55px #000b;
+  backdrop-filter: blur(16px);
+  font: 12px/1.6 Consolas, 'Courier New', monospace;
+  letter-spacing: 0;
 }
-@media (max-width: 600px) {
-  .three-control-hint { max-width: none; }
-  .three-stage-actions { justify-content: center; }
+.pipboy-credits-panel strong {
+  display: block;
+  color: #d6efb8;
+  font-size: 11px;
+  letter-spacing: .09em;
+}
+.pipboy-credits-panel p { margin: 12px 0; }
+.pipboy-credits-panel a { color: #c0f09f; text-underline-offset: 3px; }
+.pipboy-credits-panel a:hover { color: #ecffcf; }
+.pipboy-credits-close {
+  margin-top: 5px;
+  padding: 8px 12px;
+  border: 1px solid #779276;
+  border-radius: 3px;
+  color: #d0e9c2;
+  background: #29432f;
+  font: 700 10px Consolas, monospace;
+  letter-spacing: .08em;
+}
+.pipboy-credits-close:hover { background: #416949; }
+
+.asset-loading {
+  padding: 22px 18px;
+  color: #d4edc3;
+  background: #15281de8;
+  border: 1px solid #66805f;
+  text-align: center;
+  font: 12px Consolas, monospace;
+  white-space: nowrap;
+}
+.asset-fallback-wrap { display: flex; flex: 1; width: 100%; min-height: 0; flex-direction: column; }
+.asset-fallback-wrap > .three-device-stage { flex: 1; width: 100%; }
+.asset-fallback-note {
+  align-self: stretch;
+  padding: 9px 12px;
+  border: 1px solid #977a4e;
+  color: #e9c88a;
+  background: #302a19d9;
+  font: 10px/1.5 Consolas, monospace;
+  text-align: center;
+}
+@media (max-width: 740px) {
+  .page-three .page-header { top: 14px; right: 12px; }
+  .page-three .view-header-actions { gap: 5px; }
+  .page-three .view-control { padding: 8px; font-size: 9px; }
+  .pipboy-viewport-controls { bottom: 17px; }
+  .pipboy-viewport-controls button { height: 42px; padding: 0 14px; font-size: 10px; }
+  .pipboy-viewport-controls .pipboy-reset-button { width: 42px; padding: 0; }
+  .pipboy-credits { left: 12px; bottom: 17px; }
+  .pipboy-credits-button { width: 38px; height: 38px; }
+}
+@media (max-width: 420px) {
+  .pipboy-viewport-controls { left: 55%; }
+  .pipboy-viewport-controls button { font-size: 9px; padding: 0 9px; }
+  .pipboy-viewport-controls .pipboy-reset-button { width: 38px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pipboy-viewport-controls button { transition: none; }
 }

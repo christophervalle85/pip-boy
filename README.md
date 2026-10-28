@@ -1,5 +1,16 @@
 # Pip-Boy 3000
 
+## Immersive 3D landing and animated focus (v0.7.0)
+
+The textured, interactive 3D Pip-Boy is now the default landing experience whenever WebGL2 is available (no previously saved 2D preference overrides it). The browser falls back to the flat UI only when 3D graphics are unavailable. There is still **one** optional 2D switch in the upper-right controls.
+
+- **STABILIZE VIEW** animates the actual 3D Pip-Boy from its current orbit to a close, front-facing, *non-rotatable* screen view over approximately 0.95 seconds. The camera targets the physical CRT and advances so the display is easier to read and click; all five tabs, inventory editing, radio, and maps remain live.
+- **UNLOCK 3D** animates back to a three-quarter showcase angle and restores rotation/zoom. The small reset control in free mode re-centers this angle.
+- Motion is immediate instead of animated when the browser requests reduced motion.
+- The 3D scene fills the page directly: no rectangular viewer border, corner decals, device status text, keyboard hints, large model credit footer, build label, logo square, or page footer.
+- The **ⓘ** button opens the model attribution panel with the artist's name, original Sketchfab model link, [CC BY 4.0 license](https://creativecommons.org/licenses/by/4.0/), and modification disclosure. Full credits remain in [ASSET_CREDITS.md](ASSET_CREDITS.md).
+- The browser tab has no custom favicon. This presentation requires no GitHub Actions or paid generation.
+
 A Fallout-inspired personal information processor built with React, TypeScript, Vite, Three.js, and React Three Fiber. An original fan-made UI with glowing monochrome styling and fully interactive tabs. This is an unofficial project, not affiliated with Bethesda or Vault-Tec.
 
 ## Textured Fallout 3 model integration (v0.6.0)

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Activity, ArrowDownToLine, BatteryFull, CarFront, Check, ChevronRight,
   Crosshair, Headphones, KeyRound, Laptop, Minus, Pause, Play, Power, Radio, RotateCcw,
-  Box, Monitor, Package, PackageSearch, Pencil, Plus, Settings2, Trash2, Volume2, Wallet, Zap,
+  Box, Monitor, Package, PackageSearch, Pencil, Plus, Settings2, Trash2, Volume2, Wallet,
 } from 'lucide-react';
 import {
   initialGame, loadGame, saveGame, special, stations,
@@ -145,15 +145,14 @@ export default function App() {
   const [amber, setAmber] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [powerState, setPowerState] = useState<PowerState>('booting');
+  // Start on the real 3D Pip-Boy every visit. The 2D switch remains a single
+  // optional accessibility fallback, not the landing experience.
   const [viewMode, setViewMode] = useState<'3d' | 'flat'>(() => {
     try {
-      const saved = localStorage.getItem('pip-boy-view-mode');
       const canvas = document.createElement('canvas');
       const webgl = canvas.getContext('webgl2');
       webgl?.getExtension('WEBGL_lose_context')?.loseContext();
-      if (!webgl) return 'flat';
-      if (saved === 'flat' || saved === '3d') return saved;
-      return window.innerWidth < 700 ? 'flat' : '3d';
+      return webgl ? '3d' : 'flat';
     } catch {
       return 'flat';
     }
@@ -163,9 +162,6 @@ export default function App() {
   const radio = useRadio();
 
   useEffect(() => saveGame(game), [game]);
-  useEffect(() => {
-    try { localStorage.setItem('pip-boy-view-mode', viewMode); } catch { /* Private browsing may block storage. */ }
-  }, [viewMode]);
   useEffect(() => {
     if (powerState !== 'booting') return;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
@@ -348,11 +344,9 @@ export default function App() {
   return (
     <div className={`page ${amber ? 'theme-amber' : ''} ${powerState === 'off' ? 'page-off' : ''} ${viewMode === '3d' ? 'page-three' : ''}`}>
       <div className="ambient-blob ambient-blob-one"/><div className="ambient-blob ambient-blob-two"/>
-      <header className="page-header">
-        <div className="brand-lockup"><div className="brand-mark" aria-label="Pip-Boy logo"><Zap size={20} fill="currentColor"/></div></div>
+      <header className="page-header" aria-label="Pip-Boy controls">
         <div className="view-header-actions">
-          <span className="build-label"><span className="online-dot"/> BUILD 0.6.0 — {powerState === 'ready' ? 'ONLINE' : powerState === 'booting' ? 'STARTING' : 'STANDBY'}</span>
-          <button type="button" className={'view-control ' + (viewMode === '3d' ? 'current-view' : '')} onClick={() => setViewMode(viewMode === '3d' ? 'flat' : '3d')} aria-pressed={viewMode === '3d'}>
+          <button type="button" className="view-control" onClick={() => setViewMode(viewMode === '3d' ? 'flat' : '3d')} aria-label={viewMode === '3d' ? 'Switch to the optional 2D interface' : 'Return to the interactive 3D Pip-Boy'}>
             {viewMode === '3d' ? <Monitor size={14} /> : <Box size={14} />} {viewMode === '3d' ? '2D VIEW' : '3D VIEW'}
           </button>
           <button type="button" className="view-control" onClick={() => setSettingsOpen(true)} aria-label="Open Pip-Boy settings"><Settings2 size={14} /> CONFIG</button>
@@ -383,8 +377,6 @@ export default function App() {
         <div className="console-foot"><div className="screw"/><span>DESIGNED FOR THE WORLD OF TOMORROW</span><div className="screw"/></div>
       </main>
       )}
-
-      <footer className="page-footer"><span><Power size={13}/> {powerState === 'off' ? 'SYSTEM OFFLINE' : powerState === 'booting' ? 'STARTING UP' : 'SYSTEM ACTIVE'} <span className="footer-separator">/</span> LOCAL STORAGE ENABLED</span><span>PRESS <kbd>1</kbd>–<kbd>5</kbd> TO SWITCH TABS</span></footer>
 
       {editor && (editor.mode === 'add' || editingItem) && (
         <InventoryEditor
