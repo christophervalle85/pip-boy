@@ -31,23 +31,23 @@ export type GameState = { character: Character; inventory: Item[]; inventoryRevi
 
 export const initialGame: GameState = {
   character: { hp: 285, maxHp: 285, ap: 110, rads: 6, level: 12, caps: 243, xp: 560, equippedWeapon: null, equippedArmor: null },
-  inventoryRevision: 2,
+  inventoryRevision: 3,
   inventory: [
     {
       id: 'macbook-1',
-      name: 'MacBook 01',
+      name: 'MacBook Air M2 · Midnight',
       category: 'TECH',
       count: 1,
-      description: 'One of your two MacBooks. A little piece of civilization you can carry anywhere. Exact model and battery status have not been recorded.',
-      stat: 'PERSONAL DEVICE · 01 / 02',
+      description: 'My Midnight MacBook Air M2. An everyday portable workstation, tracked separately from my second laptop.',
+      stat: 'LAPTOP · M2 / MIDNIGHT',
     },
     {
       id: 'macbook-2',
-      name: 'MacBook 02',
+      name: 'MacBook Air M4 · Silver',
       category: 'TECH',
       count: 1,
-      description: 'Your second MacBook, tracked separately from the first. Another computer in your personal inventory, with its own place in the loadout.',
-      stat: 'PERSONAL DEVICE · 02 / 02',
+      description: 'My Silver MacBook Air M4. The prepared 3D preview currently uses the uploaded M2 mesh as a visual placeholder.',
+      stat: 'LAPTOP · M4 / SILVER',
     },
     {
       id: 'wallet',
@@ -123,7 +123,37 @@ export function loadGame(): GameState {
     if (!parsed.character || !Array.isArray(parsed.inventory) || !Array.isArray(parsed.quests) || !Array.isArray(parsed.locations)) {
       throw new Error('Invalid save');
     }
-    // Adopt the new real-world loadout exactly once, without erasing existing stats or quests.
+    // Update only the original two default MacBook records from revision 2.
+    // Preserve item counts, user-added inventory, edited descriptions, quests,
+    // cash, and progress rather than resetting the entire inventory.
+    if (parsed.inventoryRevision === 2) {
+      const macbookDefaults: Record<string, { oldName: string; oldStat: string; oldDescription: string; updated: Item }> = {
+        'macbook-1': {
+          oldName: 'MacBook 01',
+          oldStat: 'PERSONAL DEVICE · 01 / 02',
+          oldDescription: 'One of your two MacBooks. A little piece of civilization you can carry anywhere. Exact model and battery status have not been recorded.',
+          updated: initialGame.inventory[0],
+        },
+        'macbook-2': {
+          oldName: 'MacBook 02',
+          oldStat: 'PERSONAL DEVICE · 02 / 02',
+          oldDescription: 'Your second MacBook, tracked separately from the first. Another computer in your personal inventory, with its own place in the loadout.',
+          updated: initialGame.inventory[1],
+        },
+      };
+      const inventory = parsed.inventory.map((item) => {
+        const original = macbookDefaults[item.id];
+        if (!original) return item;
+        return {
+          ...item,
+          name: item.name === original.oldName ? original.updated.name : item.name,
+          description: item.description === original.oldDescription ? original.updated.description : item.description,
+          stat: item.stat === original.oldStat ? original.updated.stat : item.stat,
+        };
+      });
+      return { ...(parsed as GameState), inventoryRevision: 3, inventory };
+    }
+    // Very old save formats still adopt the current real-world loadout.
     if (parsed.inventoryRevision !== initialGame.inventoryRevision) {
       return {
         ...(parsed as GameState),

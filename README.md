@@ -1,5 +1,13 @@
 # Pip-Boy 3000
 
+## Prepared inventory models and MacBook finishes (v0.10.2)
+
+The default inventory now distinguishes **MacBook Air M2 (Midnight)** from **MacBook Air M4 (Silver)**. Existing local save data is migrated without resetting custom items, item counts, cash or quests.
+
+Six inspected and validated 3D assets were prepared as a downloadable ZIP in the ChatGPT conversation: Midnight M2, Silver M4 visual placeholder (using M2 geometry), black textured wallet, unchanged house key, licensed electronic car fob, and the original animated AirPods Pro. The models are **not yet committed to the repository** and the live INV tab still uses its existing icon artwork until an interactive 3D inspector is implemented.
+
+See [3D inventory asset details, credits and installation instructions](docs/INVENTORY_3D_ASSETS.md) and [the future AirPods interaction plan](docs/FUTURE_3D_INVENTORY.md).
+
 ## Direct-to-device startup, tactile hardware and CRT polish (v0.10.1)
 
 The 3D Pip-Boy is displayed immediately, without the unnecessary camera fly-in or separate introduction overlay. Its **existing RobCo screen diagnostics** still run on initial load and on reboot. Physical hardware interactions, camera stabilization, CRT effects, and optional audio are preserved.
