@@ -15,15 +15,13 @@ type Props = {
   display: ReactNode;
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
-  onRadioNext: () => void;
-  onPower: () => void;
   powerState: PowerState;
   amber: boolean;
   stabilized: boolean;
 };
 
 type ControlId = 'knob1' | 'knob2' | 'knob3' | 'rightknob'
-  | 'light1' | 'light2' | 'light3' | 'light4';
+  | 'light1' | 'light2' | 'light3' | 'light4' | 'light5';
 
 type HardwarePart = {
   // Animate the GLB's transformed parent (real pivot), not its child mesh.
@@ -31,7 +29,6 @@ type HardwarePart = {
   mesh: THREE.Mesh;
   initialDepth: number;
   initialRotation: number;
-  targetRotation: number;
   impulse: number;
   kind: 'dial' | 'button';
 };
@@ -48,14 +45,15 @@ type HardwareTarget = {
 // Html distanceFactor 400 / scale .00351: ~285 CSS px per GLB model unit.
 // Target rectangles are slightly larger than the visible mesh, for usability.
 const CONTROLS: ReadonlyArray<{ id: ControlId; label: string; width: number; height: number }> = [
-  { id: 'knob1', label: 'PREVIOUS TAB', width: 255, height: 205 },
-  { id: 'knob2', label: 'NEXT TAB', width: 158, height: 165 },
-  { id: 'knob3', label: 'POWER', width: 107, height: 107 },
-  { id: 'rightknob', label: 'TUNE RADIO', width: 92, height: 405 },
+  { id: 'knob1', label: 'UPPER DIAL · COSMETIC', width: 255, height: 205 },
+  { id: 'knob2', label: 'LOWER DIAL · COSMETIC', width: 158, height: 165 },
+  { id: 'knob3', label: 'DIAL · COSMETIC', width: 107, height: 107 },
+  { id: 'rightknob', label: 'RIGHT DIAL · COSMETIC', width: 92, height: 405 },
   { id: 'light1', label: 'STAT', width: 77, height: 77 },
   { id: 'light2', label: 'INVENTORY', width: 77, height: 77 },
   { id: 'light3', label: 'DATA', width: 77, height: 77 },
   { id: 'light4', label: 'MAP', width: 77, height: 77 },
+  { id: 'light5', label: 'RADIO', width: 77, height: 77 },
 ];
 
 function controlFromName(name: string): ControlId | null {
@@ -74,8 +72,8 @@ function identifyHardware(object: THREE.Object3D): ControlId | null {
 }
 
 function Asset({
-  display, activeTab, onTabChange, onRadioNext, onPower, powerState,
-}: Pick<Props, 'display' | 'activeTab' | 'onTabChange' | 'onRadioNext' | 'onPower' | 'powerState'>) {
+  display, activeTab, onTabChange, powerState,
+}: Pick<Props, 'display' | 'activeTab' | 'onTabChange' | 'powerState'>) {
   const { scene } = useGLTF(MODEL_PATH);
   const { gl } = useThree();
   const [screenFacing, setScreenFacing] = useState(true);
@@ -93,7 +91,7 @@ function Asset({
           color: '#06130b', side: THREE.DoubleSide, depthWrite: true,
         });
       }
-      if (/^light[1-4]_low/i.test(child.name) && child.material instanceof THREE.MeshStandardMaterial) {
+      if (/^light[1-5]_low/i.test(child.name) && child.material instanceof THREE.MeshStandardMaterial) {
         // Clone only the indicator materials so other GLB pieces keep their
         // original textures while the physical buttons can light up.
         child.material = child.material.clone();
@@ -103,6 +101,31 @@ function Asset({
       child.castShadow = false;
       child.receiveShadow = false;
     });
+
+    // Add a fifth *physical* red button, duplicating the model's existing
+    // fourth button mesh/material rather than placing a flat UI decal.
+    // Place it one genuine button-spacing to the right of light4.
+    copy.updateMatrixWorld(true);
+    const third = copy.getObjectByName('light3_low_lambert1_0');
+    const fourth = copy.getObjectByName('light4_low_lambert1_0');
+    if (third instanceof THREE.Mesh && fourth instanceof THREE.Mesh &&
+        fourth.parent?.parent && third !== fourth) {
+      const parent = fourth.parent!;
+      const container = parent.parent!;
+      const thirdCenter = new THREE.Box3().setFromObject(third).getCenter(new THREE.Vector3());
+      const fourthCenter = new THREE.Box3().setFromObject(fourth).getCenter(new THREE.Vector3());
+      const step = container.worldToLocal(fourthCenter.clone())
+        .sub(container.worldToLocal(thirdCenter.clone()));
+      const pivot = parent.clone(false);
+      pivot.name = 'light5_low';
+      pivot.position.add(step);
+      const lens = fourth.clone(false);
+      lens.name = 'light5_low_lambert1_0';
+      if (lens.material instanceof THREE.MeshStandardMaterial) lens.material = lens.material.clone();
+      pivot.add(lens);
+      container.add(pivot);
+      copy.updateMatrixWorld(true);
+    }
     return copy;
   }, [scene]);
 
@@ -139,8 +162,7 @@ function Asset({
     model.traverse((node) => {
       if (!(node instanceof THREE.Mesh)) return;
       const id = controlFromName(node.name);
-      // Ignore parent and non-control pieces; only one real visual mesh per
-      // control. The pivot is the GLB's separate *_low parent object.
+      // Use the actual GLB pivot or our matching cloned button pivot.
       if (!id || !node.name.toLowerCase().includes('_lambert')) return;
       const pivot = node.parent;
       if (!pivot) return;
@@ -149,7 +171,6 @@ function Asset({
         mesh: node,
         initialDepth: pivot.position.y,
         initialRotation: pivot.rotation.y,
-        targetRotation: pivot.rotation.y,
         impulse: 0,
         kind: id.startsWith('light') ? 'button' : 'dial',
       });
@@ -169,18 +190,25 @@ function Asset({
       setScreenFacing(facing);
     }
 
-    const smoothing = 1 - Math.exp(-Math.min(delta, .05) * 16);
     for (const [id, part] of hardware.current) {
-      part.pivot.rotation.y += (part.targetRotation - part.pivot.rotation.y) * smoothing;
-      part.impulse = Math.max(0, part.impulse - Math.min(delta, .05) * 4);
-      const depression = Math.sin(part.impulse * Math.PI) * (part.kind === 'button' ? 2.5 : .75);
-      // Raw GLB dimensions are in centimeters; its root scales by 0.01.
-      // Press the actual control parent inward along the model's front axis.
-      part.pivot.position.y = part.initialDepth - depression;
+      // A single short impulse: up to 18 degrees, then back to the exact
+      // authored resting rotation. Never accumulate a full turn or translate
+      // the cosmetic knobs backwards into the shell.
+      const phase = 1 - part.impulse;
+      const pulse = part.impulse > 0 ? Math.sin(phase * Math.PI) : 0;
+      if (part.kind === 'dial') {
+        part.pivot.rotation.y = part.initialRotation + Math.max(0, pulse) * (Math.PI / 10);
+        part.pivot.position.y = part.initialDepth;
+      } else {
+        part.pivot.rotation.y = part.initialRotation;
+        // Buttons depress briefly; unlike knobs they physically push in.
+        part.pivot.position.y = part.initialDepth - Math.max(0, pulse) * 1.6;
+      }
+      part.impulse = Math.max(0, part.impulse - Math.min(delta, 0.05) * 2.25);
       if (part.kind === 'button' && part.mesh.material instanceof THREE.MeshStandardMaterial) {
         const buttonNumber = Number(id.slice(5, 6));
         const lit = powerState === 'ready' && TABS[buttonNumber - 1] === activeTab;
-        part.mesh.material.emissiveIntensity = powerState === 'off' ? 0 : lit ? .75 + part.impulse * .55 : .08 + part.impulse * .4;
+        part.mesh.material.emissiveIntensity = powerState === 'off' ? 0 : lit ? .75 + part.impulse * .35 : .08 + part.impulse * .25;
       }
     }
   });
@@ -197,20 +225,14 @@ function Asset({
   };
 
   const activateControl = (id: ControlId) => {
-    if (powerState !== 'ready' && id !== 'knob3') return;
+    if (powerState !== 'ready') return;
     const part = hardware.current.get(id);
-    if (part) {
-      part.impulse = .99;
-      if (part.kind === 'dial') {
-        part.targetRotation = part.initialRotation +
-          ((part.targetRotation - part.initialRotation + .22) % (Math.PI * 2));
-      }
+    if (part) part.impulse = 1;
+    // Every physical dial is cosmetic. Only the five red buttons navigate.
+    if (id.startsWith('light')) {
+      const tab = TABS[Number(id.slice(5)) - 1];
+      if (tab) onTabChange(tab);
     }
-    if (id === 'rightknob') onRadioNext();
-    else if (id === 'knob1') onTabChange(TABS[(TABS.indexOf(activeTab) + TABS.length - 1) % TABS.length]);
-    else if (id === 'knob2') onTabChange(TABS[(TABS.indexOf(activeTab) + 1) % TABS.length]);
-    else if (id === 'knob3') onPower();
-    else onTabChange(TABS[Number(id.slice(5)) - 1]);
   };
 
   const onHardwareClick = (event: ThreeEvent<MouseEvent>) => {
@@ -262,7 +284,7 @@ function Asset({
               className={'pipboy-hardware-target' + (target.id.startsWith('light') ? ' is-button' : ' is-knob')}
               aria-label={target.label + ' — physical Pip-Boy control'}
               title={target.label}
-              disabled={powerState !== 'ready' && target.id !== 'knob3'}
+              disabled={powerState !== 'ready'}
               onPointerDown={(event) => event.stopPropagation()}
               onPointerUp={(event) => event.stopPropagation()}
               onClick={(event) => {
@@ -417,7 +439,7 @@ function CameraMotion({
 }
 
 function LoadedScene({
-  display, activeTab, onTabChange, onRadioNext, onPower, powerState, resetToken, stabilized,
+  display, activeTab, onTabChange, powerState, resetToken, stabilized,
 }: Props & { resetToken: number }) {
   const controlsRef = useRef<OrbitInstance>(null);
   const [animating, setAnimating] = useState(false);
@@ -435,7 +457,7 @@ function LoadedScene({
       <directionalLight position={[6, 3, -5]} color="#a2c497" intensity={2} />
       <pointLight position={[4, -3, 6]} color="#9ec5a1" intensity={14} distance={30} />
       <Suspense fallback={<Html center><div className="asset-loading">LOADING TEXTURED PIP-BOY…</div></Html>}>
-        <Asset display={display} activeTab={activeTab} onTabChange={onTabChange} onRadioNext={onRadioNext} onPower={onPower} powerState={powerState} />
+        <Asset display={display} activeTab={activeTab} onTabChange={onTabChange} powerState={powerState} />
       </Suspense>
       <OrbitControls
         ref={controlsRef}

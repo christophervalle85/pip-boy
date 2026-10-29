@@ -1,5 +1,14 @@
 # Pip-Boy 3000
 
+## Five red buttons and cosmetic spring-return knobs (v0.11.5)
+
+- Removed the glowing green hover/focus outline and background from all physical hardware hit areas. The **small descriptive label above the control still appears on hover or keyboard focus**.
+- The Pip-Boy's original knobs (including the two large visible left dials and right tuner) are now **cosmetic only**: clicking produces a short, maximum **18°** turn that returns smoothly to the knob's exact original rotation. No knob changes tabs, radio stations, or power, and none moves backward into the body.
+- Preserved the four original red buttons, mapped to **STAT, INV, DATA, MAP**.
+- Added one **fifth matching red 3D button** immediately to the right of the existing row, built by duplicating the fourth button's actual textured GLB mesh and material. The new physical button opens **RADIO**. Its invisible clickable surface and label use the same accessibility and event isolation as the existing buttons.
+- Top-right POWER and CONFIG, the working on-screen five-tab navigation, boot sequence, 3D model stabilization, and transparent interactive inventory are untouched. No new dependencies or external assets.
+- Source checks are performed against the repo; positioning and movement need confirmation in the local browser.
+
 ## Real clickable hardware targets (v0.11.4)
 
 This fixes a recurring issue in which the visible Pip-Boy's red buttons and physical knobs could not be clicked even though event handlers existed. Earlier 3D raycast proxy spheres were positioned at mesh centers and could sit behind the model's casing or collide with the screen; they were not sufficiently reliable.

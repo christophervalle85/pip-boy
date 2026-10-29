@@ -270,12 +270,13 @@
   cursor: default;
   opacity: 1;
 }
+/* Keep the physical hardware untouched visually. The tooltip above each
+   control is the only hover/focus feedback—no green rings, glow, or tint. */
 .pipboy-hardware-target:not(:disabled):hover,
 .pipboy-hardware-target:not(:disabled):focus-visible {
-  outline: 2px solid #b6f294b0;
-  outline-offset: 0;
-  background: #b6f29413;
-  box-shadow: 0 0 15px #b6f2942b, inset 0 0 12px #b6f29414;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
 }
 .pipboy-hardware-label {
   position: absolute;

@@ -153,14 +153,6 @@ export default function App() {
     setTab(next);
     playDeviceSound('select');
   }, [playDeviceSound]);
-  const tuneNextStation = useCallback(() => {
-    const i = stations.findIndex((item) => item.id === radio.station);
-    const next = stations[(i + 1) % stations.length];
-    radio.setStation(next.id);
-    setTab('RADIO');
-    setNotice(`TUNED TO ${next.mhz} MHz`);
-    playDeviceSound('dial');
-  }, [radio.station, radio.setStation, playDeviceSound]);
 
   useEffect(() => saveGame(game), [game]);
   useEffect(() => {
@@ -387,8 +379,6 @@ export default function App() {
           display={display}
           activeTab={tab}
           onTabChange={changeTab}
-          onRadioNext={tuneNextStation}
-          onPower={togglePower}
           powerState={powerState}
           amber={amber}
           stabilized={stabilized}
