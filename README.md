@@ -1,5 +1,16 @@
 # Pip-Boy 3000
 
+## Real clickable hardware targets (v0.11.4)
+
+This fixes a recurring issue in which the visible Pip-Boy's red buttons and physical knobs could not be clicked even though event handlers existed. Earlier 3D raycast proxy spheres were positioned at mesh centers and could sit behind the model's casing or collide with the screen; they were not sufficiently reliable.
+
+- **Eight real controls** (four red buttons, the three left-side knobs and the right-hand radio tuner) now have transparent **HTML button hit surfaces** anchored to the actual glTF mesh bounding boxes and positioned just beyond each part's front surface. The layout is calculated from the shipped GLB rather than arbitrary 2D pixel coordinates.
+- The controls remain visually the **original physical 3D meshes**; no additional visible fake hardware. Hover or keyboard focus shows a subtle green highlight and a descriptive label.
+- Front buttons 1–4: STAT, INV, DATA and MAP. Left knobs: previous tab, next tab, and power. Right tuner: cycle to the next radio station.
+- Real mesh pivot rotation/press and indicator feedback continue, and the native screen remains fully interactive.
+- Since buttons are DOM controls, pointer events can no longer be lost to mesh raycasting. Clicking hardware does not trigger unrelated controls in the embedded INV viewer; inventory hold-to-drag still works.
+- Model license, zoom/stabilize mode, startup, CRT theme, personal inventory and saved data are unchanged. No new dependencies.
+
 ## Actual clickable 3D hardware (v0.11.3)
 
 The physical controls on the **existing** textured Fallout 3 Pip-Boy are now significantly more reliable and visibly interactive. This corrects the previous implementation, which had event-picking and mesh-pivot issues.

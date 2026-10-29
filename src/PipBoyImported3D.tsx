@@ -39,19 +39,23 @@ type HardwarePart = {
 type HardwareTarget = {
   id: ControlId;
   center: [number, number, number];
-  radius: number;
+  width: number;
+  height: number;
   label: string;
 };
 
-const CONTROLS: ReadonlyArray<{ id: ControlId; label: string; radius: number }> = [
-  { id: 'knob1', label: 'PREVIOUS TAB', radius: .41 },
-  { id: 'knob2', label: 'NEXT TAB', radius: .32 },
-  { id: 'knob3', label: 'POWER', radius: .22 },
-  { id: 'rightknob', label: 'TUNE RADIO', radius: .34 },
-  { id: 'light1', label: 'STAT', radius: .17 },
-  { id: 'light2', label: 'INVENTORY', radius: .17 },
-  { id: 'light3', label: 'DATA', radius: .17 },
-  { id: 'light4', label: 'MAP', radius: .17 },
+// CSS sizes correspond to the actual 3D mesh bounding boxes at the existing
+// Html distanceFactor 400 / scale .00351: ~285 CSS px per GLB model unit.
+// Target rectangles are slightly larger than the visible mesh, for usability.
+const CONTROLS: ReadonlyArray<{ id: ControlId; label: string; width: number; height: number }> = [
+  { id: 'knob1', label: 'PREVIOUS TAB', width: 255, height: 205 },
+  { id: 'knob2', label: 'NEXT TAB', width: 158, height: 165 },
+  { id: 'knob3', label: 'POWER', width: 107, height: 107 },
+  { id: 'rightknob', label: 'TUNE RADIO', width: 92, height: 405 },
+  { id: 'light1', label: 'STAT', width: 77, height: 77 },
+  { id: 'light2', label: 'INVENTORY', width: 77, height: 77 },
+  { id: 'light3', label: 'DATA', width: 77, height: 77 },
+  { id: 'light4', label: 'MAP', width: 77, height: 77 },
 ];
 
 function controlFromName(name: string): ControlId | null {
@@ -75,7 +79,6 @@ function Asset({
   const { scene } = useGLTF(MODEL_PATH);
   const { gl } = useThree();
   const [screenFacing, setScreenFacing] = useState(true);
-  const [hoveredControl, setHoveredControl] = useState<ControlId | null>(null);
   const lastFacing = useRef(true);
   const hardware = useRef<Map<ControlId, HardwarePart>>(new Map());
 
@@ -103,29 +106,30 @@ function Asset({
     return copy;
   }, [scene]);
 
-  // The authored GLB has transformed control parents and child render meshes.
-  // Bounding-box hit targets belong to the real controls and are enlarged just
-  // enough for reliable clicking. They render with zero color/opacity.
+  // The glTF controls are authored as individual meshes. Read their *real*
+  // transformed bounds, then anchor a transparent HTML button just in FRONT
+  // of each mesh. This is reliable even when the physical buttons are too
+  // shallow for normal R3F picking or other device geometry overlaps.
   const targets = useMemo<HardwareTarget[]>(() => {
     model.updateMatrixWorld(true);
     const result: HardwareTarget[] = [];
     for (const control of CONTROLS) {
-      // This model spells RightKnob with capitals. The rest are lowercase.
       const meshName = (control.id === 'rightknob' ? 'RightKnob' : control.id) + '_low_lambert1_0';
       const mesh = model.getObjectByName(meshName);
       if (!(mesh instanceof THREE.Mesh)) continue;
       const bounds = new THREE.Box3().setFromObject(mesh);
       const center = bounds.getCenter(new THREE.Vector3());
-      result.push({ id: control.id, center: center.toArray() as [number, number, number], radius: control.radius, label: control.label });
-      if (control.id === 'rightknob') {
-        // This side tuner is elongated vertically after the GLB's rotation.
-        // Three small invisible hit regions cover its physical length without
-        // making the entire adjacent Radio_low body accidentally clickable.
-        result.push(
-          { id: control.id, center: [center.x, center.y, center.z - .43], radius: .3, label: control.label },
-          { id: control.id, center: [center.x, center.y, center.z + .43], radius: .3, label: control.label },
-        );
-      }
+      // The model faces +Y before the surrounding group's +90° X rotation.
+      // Put the DOM surface slightly forward of the REAL front face,
+      // avoiding invisible or occluded clicks under the metal casing.
+      center.y = bounds.max.y + 0.07;
+      result.push({
+        id: control.id,
+        center: center.toArray() as [number, number, number],
+        width: control.width,
+        height: control.height,
+        label: control.label,
+      });
     }
     return result;
   }, [model]);
@@ -220,15 +224,11 @@ function Asset({
   const onHardwareHover = (event: ThreeEvent<PointerEvent>) => {
     if (!isPhysicalCanvasEvent(event)) return;
     const id = identifyHardware(event.object);
-    if (id) {
-      document.body.style.cursor = 'pointer';
-      setHoveredControl(id);
-    }
+    if (id) document.body.style.cursor = 'pointer';
   };
 
   const clearHardwareHover = () => {
     document.body.style.cursor = '';
-    setHoveredControl(null);
   };
 
   return (
@@ -240,41 +240,40 @@ function Asset({
           onPointerOver={onHardwareHover}
           onPointerOut={clearHardwareHover}
         />
-        {targets.map((target, index) => (
-          <mesh
-            key={target.id + '-' + index}
-            name={'hardware-hit-' + target.id}
+        {targets.map((target) => (
+          <Html
+            key={target.id}
+            transform
+            center
+            distanceFactor={400}
+            rotation={[-Math.PI / 2, 0, 0]}
             position={target.center}
-            onClick={(event) => {
-              if (!isPhysicalCanvasEvent(event)) return;
-              event.stopPropagation();
-              activateControl(target.id);
+            scale={0.00351}
+            zIndexRange={[20, 14]}
+            style={{
+              width: target.width + 'px',
+              height: target.height + 'px',
+              pointerEvents: screenFacing ? 'auto' : 'none',
+              visibility: screenFacing ? 'visible' : 'hidden',
             }}
-            onPointerOver={(event) => {
-              if (!isPhysicalCanvasEvent(event)) return;
-              event.stopPropagation();
-              document.body.style.cursor = 'pointer';
-              setHoveredControl(target.id);
-            }}
-            onPointerOut={clearHardwareHover}
           >
-            <sphereGeometry args={[target.radius, 16, 12]} />
-            <meshBasicMaterial transparent opacity={0} colorWrite={false} depthWrite={false} />
-          </mesh>
-        ))}
-        {hoveredControl && (() => {
-          const hit = targets.find((target) => target.id === hoveredControl);
-          return hit ? (
-            <Html
-              position={hit.center}
-              center
-              zIndexRange={[18, 16]}
-              style={{ pointerEvents: 'none' }}
+            <button
+              type="button"
+              className={'pipboy-hardware-target' + (target.id.startsWith('light') ? ' is-button' : ' is-knob')}
+              aria-label={target.label + ' — physical Pip-Boy control'}
+              title={target.label}
+              disabled={powerState !== 'ready' && target.id !== 'knob3'}
+              onPointerDown={(event) => event.stopPropagation()}
+              onPointerUp={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                activateControl(target.id);
+              }}
             >
-              <span className="pipboy-hardware-tooltip">{hit.label}</span>
-            </Html>
-          ) : null;
-        })()}
+              <span className="pipboy-hardware-label" aria-hidden="true">{target.label}</span>
+            </button>
+          </Html>
+        ))}
         <Html
           transform
           center
