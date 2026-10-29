@@ -1,5 +1,14 @@
 # Pip-Boy 3000
 
+## Tuned upper/lower dial detents and lower home position (v0.11.8)
+
+- The **upper-left dial** now advances **25° per click**, reaches its 150° mechanical end stop after **six** clicks, and resets to its zero position on the **seventh** forward click.
+- The **lower-left dial** advances **25° per click**, reaches its shorter 125° end stop after **five** clicks, and resets on the **sixth** forward click.
+- Adjusted the lower-left dial's authored resting orientation by **+35°** around its original pivot to give the handle a more balanced initial pose. This is its new home position when the dial resets.
+- Hold-and-drag continues to work, with per-dial travel limits and no jump when dragging backward from zero; clicking and keyboard arrows use the correct detent for the selected dial.
+- The right-hand cosmetic dial retains its former 150° range and 15° click increments. The small POWER knob, fifth silver-rimmed red button, CRT, and 3D inventory are unaffected.
+- Click counts and end-stop behavior were checked for all three cosmetic dials; visually fine-tuning the lower knob's new home position requires a browser screenshot.
+
 ## Corrected physical knob limits (v0.11.7)
 
 - Fixed the dial bounds after the previous 300° wraparound caused a **reverse drag from the starting position to jump almost a full rotation backwards**.

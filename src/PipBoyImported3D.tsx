@@ -9,6 +9,16 @@ import './pipboy-imported.css';
 
 const MODEL_PATH = '/models/pip-boy-fallout-3-web.glb';
 const TABS: Tab[] = ['STAT', 'INV', 'DATA', 'MAP', 'RADIO'];
+
+// Each knob has its own calibrated range and detents. Six full clicks get
+// the upper knob to its stop; five get the lower knob to its stop. The
+// NEXT forward click returns it to its home position.
+const DIAL_CONFIG: Partial<Record<ControlId, { maxTurn: number; clickStep: number }>> = {
+  knob1: { maxTurn: THREE.MathUtils.degToRad(150), clickStep: THREE.MathUtils.degToRad(25) },
+  knob2: { maxTurn: THREE.MathUtils.degToRad(125), clickStep: THREE.MathUtils.degToRad(25) },
+  rightknob: { maxTurn: THREE.MathUtils.degToRad(150), clickStep: THREE.MathUtils.degToRad(15) },
+};
+const LOWER_DIAL_HOME_OFFSET = THREE.MathUtils.degToRad(35);
 type PowerState = 'booting' | 'ready' | 'off';
 
 type Props = {
@@ -143,6 +153,16 @@ function Asset({
       }
       copy.updateMatrixWorld(true);
     }
+
+    // The lower left dial's original resting pose left its raised grip at
+    // an awkward angle. Re-orient its pivot ONCE in our cloned GLB, before
+    // calculating click surfaces or recording its resting rotation. That
+    // makes the revised orientation its true zero, including after reset.
+    const lowerDial = copy.getObjectByName('knob2_low_lambert1_0');
+    if (lowerDial instanceof THREE.Mesh && lowerDial.parent) {
+      lowerDial.parent.rotation.y += LOWER_DIAL_HOME_OFFSET;
+      copy.updateMatrixWorld(true);
+    }
     return copy;
   }, [scene]);
 
@@ -246,22 +266,20 @@ function Asset({
     return target === gl.domElement || target === gl.domElement.parentElement;
   };
 
-  // Physical travel is a limited arc, not 300° or an unlimited modulo.
-  // The old formula mapped tiny reverse drags at zero to almost 300°,
-  // causing the dial to turn all the way backwards into the Pip-Boy.
-  const MAX_TURN = (Math.PI * 5) / 6; // 150°
+  // Use the independently calibrated detents instead of assuming every
+  // control has the same mechanical stop. Reverse motion ALWAYS clamps to
+  // home; reaching the forward stop holds there until a further advance.
   const ROTATION_PER_PIXEL = .012;
-  const CLICK_STEP = Math.PI / 12; // 15°
   const rotateDial = (id: ControlId, radians: number) => {
     const part = hardware.current.get(id);
-    if (!part || part.kind !== 'dial' || !Number.isFinite(radians)) return;
+    const config = DIAL_CONFIG[id];
+    if (!part || part.kind !== 'dial' || !config || !Number.isFinite(radians)) return;
     const next = part.dialAngle + radians;
-    if (radians > 0 && next >= MAX_TURN) {
-      // Reset only at the forward stop; never wrap on a reverse turn.
+    if (radians > 0 && next > config.maxTurn + 0.00001) {
+      // One more click/forward turn *after* the stop resets the dial.
       part.dialAngle = 0;
     } else {
-      // Clamp reverse motion to the true starting position.
-      part.dialAngle = THREE.MathUtils.clamp(next, 0, MAX_TURN);
+      part.dialAngle = THREE.MathUtils.clamp(next, 0, config.maxTurn);
     }
   };
 
@@ -281,7 +299,7 @@ function Asset({
       if (tab) onTabChange(tab);
     } else {
       // A click makes one tactile notch; drag for free rotation.
-      rotateDial(id, CLICK_STEP);
+      rotateDial(id, DIAL_CONFIG[id]?.clickStep ?? 0);
     }
   };
 
@@ -392,11 +410,11 @@ function Asset({
                 if (target.id.startsWith('light') || target.id === 'knob3') return;
                 if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
                   event.preventDefault();
-                  rotateDial(target.id, CLICK_STEP);
+                  rotateDial(target.id, DIAL_CONFIG[target.id]?.clickStep ?? 0);
                 }
                 if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
                   event.preventDefault();
-                  rotateDial(target.id, -CLICK_STEP);
+                  rotateDial(target.id, -(DIAL_CONFIG[target.id]?.clickStep ?? 0));
                 }
               }}
             >
