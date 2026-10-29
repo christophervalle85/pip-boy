@@ -1,5 +1,16 @@
 # Pip-Boy 3000
 
+## Actual clickable 3D hardware (v0.11.3)
+
+The physical controls on the **existing** textured Fallout 3 Pip-Boy are now significantly more reliable and visibly interactive. This corrects the previous implementation, which had event-picking and mesh-pivot issues.
+
+- The GLB was inspected directly to identify the eight real, separately named hardware parts (three left knobs, the right tuning knob, and four front buttons). Controls now have **transparent raycast-only hit targets** centered on each physical mesh, including extended coverage for the long right knob. No visible fake controls or new boxes are added.
+- Hover over each real knob or button to see a small floating label, plus a pointer cursor. Mouse clicks animate the actual GLB control's **pivot node** (instead of incorrectly rotating child geometry around the origin). The four front buttons visibly press and illuminate; dials turn in place.
+- **Knob 1:** previous main tab; **Knob 2:** next main tab; **Knob 3:** power toggle; **right knob:** next radio station (and switch to RADIO). **Front buttons 1–4:** STAT, INV, DATA, MAP.
+- Clicking the broad stationary `Radio_low` housing no longer selects RADIO accidentally. The hardware click handler rejects events from the live screen and its separate inventory WebGL canvas. Those events must remain intact for inventory hold-to-drag rotation, which is unchanged.
+- To access knobs outside the close-up screen frame, use **UNLOCK 3D**. The existing STABILIZE VIEW, boot sequence, CRT effects, fully transparent inventory models, and AirPods animation remain unchanged.
+- No extra dependencies or model re-uploads. Hardware animation and hover labels should be visually verified in the browser after pulling.
+
 ## True hold-to-drag inventory rotation (v0.11.2)
 
 The previous radio-switching fix stopped every pointer event on the inventory preview wrapper. That also prevented the nested Three.js OrbitControls from receiving the release event, resulting in a sticky click-to-drag interaction.

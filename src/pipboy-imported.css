@@ -242,6 +242,22 @@
 }
 .pipboy-credits-close:hover { background: #416949; }
 
+/* Small non-interactive labels appear on hover over real hardware meshes.
+   They never intercept clicks or cover the embedded CRT interface. */
+.pipboy-hardware-tooltip {
+  display: block;
+  pointer-events: none;
+  padding: 6px 9px;
+  border: 1px solid #a7ce86a8;
+  border-radius: 3px;
+  background: #0a1d10ee;
+  color: #c8f7ad;
+  box-shadow: 0 3px 14px #0009;
+  font: 800 10px/1 Consolas, 'Courier New', monospace;
+  letter-spacing: .065em;
+  white-space: nowrap;
+}
+
 .asset-loading {
   padding: 22px 18px;
   color: #d4edc3;

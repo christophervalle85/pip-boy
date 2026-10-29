@@ -22,22 +22,48 @@ type Props = {
   stabilized: boolean;
 };
 
+type ControlId = 'knob1' | 'knob2' | 'knob3' | 'rightknob'
+  | 'light1' | 'light2' | 'light3' | 'light4';
+
 type HardwarePart = {
+  // Animate the GLB's transformed parent (real pivot), not its child mesh.
+  pivot: THREE.Object3D;
   mesh: THREE.Mesh;
-  initialY: number;
+  initialDepth: number;
   initialRotation: number;
   targetRotation: number;
   impulse: number;
   kind: 'dial' | 'button';
 };
 
-function identifyHardware(object: THREE.Object3D): string | null {
-  // The 43 exported GLB nodes are named: knob1/2/3_low, RightKnob_low,
-  // light1/2/3/4_low, and Radio_low / RadioInside_low.
+type HardwareTarget = {
+  id: ControlId;
+  center: [number, number, number];
+  radius: number;
+  label: string;
+};
+
+const CONTROLS: ReadonlyArray<{ id: ControlId; label: string; radius: number }> = [
+  { id: 'knob1', label: 'PREVIOUS TAB', radius: .41 },
+  { id: 'knob2', label: 'NEXT TAB', radius: .32 },
+  { id: 'knob3', label: 'POWER', radius: .22 },
+  { id: 'rightknob', label: 'TUNE RADIO', radius: .34 },
+  { id: 'light1', label: 'STAT', radius: .17 },
+  { id: 'light2', label: 'INVENTORY', radius: .17 },
+  { id: 'light3', label: 'DATA', radius: .17 },
+  { id: 'light4', label: 'MAP', radius: .17 },
+];
+
+function controlFromName(name: string): ControlId | null {
+  const lower = name.toLowerCase();
+  return CONTROLS.find((c) => lower.startsWith(c.id + '_low'))?.id ?? null;
+}
+
+function identifyHardware(object: THREE.Object3D): ControlId | null {
   let node: THREE.Object3D | null = object;
   while (node) {
-    const name = node.name.toLowerCase();
-    if (/^(knob[123]_low|rightknob_low|light[1234]_low|radio_low|radioinside_low)/.test(name)) return name;
+    const control = controlFromName(node.name);
+    if (control) return control;
     node = node.parent;
   }
   return null;
@@ -49,8 +75,9 @@ function Asset({
   const { scene } = useGLTF(MODEL_PATH);
   const { gl } = useThree();
   const [screenFacing, setScreenFacing] = useState(true);
+  const [hoveredControl, setHoveredControl] = useState<ControlId | null>(null);
   const lastFacing = useRef(true);
-  const hardware = useRef<Map<string, HardwarePart>>(new Map());
+  const hardware = useRef<Map<ControlId, HardwarePart>>(new Map());
 
   const model = useMemo(() => {
     const copy = scene.clone(true);
@@ -76,19 +103,51 @@ function Asset({
     return copy;
   }, [scene]);
 
+  // The authored GLB has transformed control parents and child render meshes.
+  // Bounding-box hit targets belong to the real controls and are enlarged just
+  // enough for reliable clicking. They render with zero color/opacity.
+  const targets = useMemo<HardwareTarget[]>(() => {
+    model.updateMatrixWorld(true);
+    const result: HardwareTarget[] = [];
+    for (const control of CONTROLS) {
+      // This model spells RightKnob with capitals. The rest are lowercase.
+      const meshName = (control.id === 'rightknob' ? 'RightKnob' : control.id) + '_low_lambert1_0';
+      const mesh = model.getObjectByName(meshName);
+      if (!(mesh instanceof THREE.Mesh)) continue;
+      const bounds = new THREE.Box3().setFromObject(mesh);
+      const center = bounds.getCenter(new THREE.Vector3());
+      result.push({ id: control.id, center: center.toArray() as [number, number, number], radius: control.radius, label: control.label });
+      if (control.id === 'rightknob') {
+        // This side tuner is elongated vertically after the GLB's rotation.
+        // Three small invisible hit regions cover its physical length without
+        // making the entire adjacent Radio_low body accidentally clickable.
+        result.push(
+          { id: control.id, center: [center.x, center.y, center.z - .43], radius: .3, label: control.label },
+          { id: control.id, center: [center.x, center.y, center.z + .43], radius: .3, label: control.label },
+        );
+      }
+    }
+    return result;
+  }, [model]);
+
   useEffect(() => {
-    const parts = new Map<string, HardwarePart>();
+    const parts = new Map<ControlId, HardwarePart>();
     model.traverse((node) => {
       if (!(node instanceof THREE.Mesh)) return;
-      const name = node.name.toLowerCase();
-      if (!/^(knob[123]_low|rightknob_low|light[1234]_low)/.test(name)) return;
-      parts.set(name, {
+      const id = controlFromName(node.name);
+      // Ignore parent and non-control pieces; only one real visual mesh per
+      // control. The pivot is the GLB's separate *_low parent object.
+      if (!id || !node.name.toLowerCase().includes('_lambert')) return;
+      const pivot = node.parent;
+      if (!pivot) return;
+      parts.set(id, {
+        pivot,
         mesh: node,
-        initialY: node.position.y,
-        initialRotation: node.rotation.y,
-        targetRotation: node.rotation.y,
+        initialDepth: pivot.position.y,
+        initialRotation: pivot.rotation.y,
+        targetRotation: pivot.rotation.y,
         impulse: 0,
-        kind: name.startsWith('light') ? 'button' : 'dial',
+        kind: id.startsWith('light') ? 'button' : 'dial',
       });
     });
     hardware.current = parts;
@@ -107,51 +166,69 @@ function Asset({
     }
 
     const smoothing = 1 - Math.exp(-Math.min(delta, .05) * 16);
-    for (const part of hardware.current.values()) {
-      part.mesh.rotation.y += (part.targetRotation - part.mesh.rotation.y) * smoothing;
+    for (const [id, part] of hardware.current) {
+      part.pivot.rotation.y += (part.targetRotation - part.pivot.rotation.y) * smoothing;
       part.impulse = Math.max(0, part.impulse - Math.min(delta, .05) * 4);
-      const depression = Math.sin(part.impulse * Math.PI) * (part.kind === 'button' ? .03 : .012);
-      part.mesh.position.y = part.initialY - depression;
+      const depression = Math.sin(part.impulse * Math.PI) * (part.kind === 'button' ? 2.5 : .75);
+      // Raw GLB dimensions are in centimeters; its root scales by 0.01.
+      // Press the actual control parent inward along the model's front axis.
+      part.pivot.position.y = part.initialDepth - depression;
       if (part.kind === 'button' && part.mesh.material instanceof THREE.MeshStandardMaterial) {
-        const buttonNumber = Number(part.mesh.name.toLowerCase().slice(5, 6));
+        const buttonNumber = Number(id.slice(5, 6));
         const lit = powerState === 'ready' && TABS[buttonNumber - 1] === activeTab;
-        part.mesh.material.emissiveIntensity = powerState === 'off' ? 0 : lit ? .65 + part.impulse * .35 : .06 + part.impulse * .24;
+        part.mesh.material.emissiveIntensity = powerState === 'off' ? 0 : lit ? .75 + part.impulse * .55 : .08 + part.impulse * .4;
       }
     }
   });
 
-  const onHardwareClick = (event: ThreeEvent<MouseEvent>) => {
-    // R3F can receive events bubbling from the inner INV canvas via the
-    // Drei Html overlay. Only a real click on THIS canvas may operate
-    // physical hardware, never a click from the nested viewer or CRT UI.
-    if (event.sourceEvent?.target !== gl.domElement) return;
-    const name = identifyHardware(event.object);
-    if (!name) return;
-    event.stopPropagation();
+  const isPhysicalCanvasEvent = (event: ThreeEvent<MouseEvent> | ThreeEvent<PointerEvent>) => {
+    // The nested INV WebGL canvas and the interactive CRT Html may bubble
+    // into the outer R3F event manager. Never treat those as hardware input.
+    const target = event.sourceEvent?.target;
+    if (!(target instanceof Element) || target.closest('.imported-live-screen')) return false;
+    // R3F usually dispatches directly from the WebGL canvas; some versions
+    // attach to its immediate parent. Accept only these two physical
+    // surfaces, never inner HTML or the inventory's second canvas.
+    return target === gl.domElement || target === gl.domElement.parentElement;
+  };
 
-    const matching = [...hardware.current.values()].find((part) => part.mesh.name.toLowerCase() === name);
-    if (matching) {
-      matching.impulse = .97;
-      if (matching.kind === 'dial') {
-        // Mesh pivots are the original exported local origins. A small turn
-        // avoids unseating the hardware while making the control feel tactile.
-        matching.targetRotation += name.startsWith('rightknob') ? .18 : .15;
+  const activateControl = (id: ControlId) => {
+    if (powerState !== 'ready' && id !== 'knob3') return;
+    const part = hardware.current.get(id);
+    if (part) {
+      part.impulse = .99;
+      if (part.kind === 'dial') {
+        part.targetRotation = part.initialRotation +
+          ((part.targetRotation - part.initialRotation + .22) % (Math.PI * 2));
       }
     }
+    if (id === 'rightknob') onRadioNext();
+    else if (id === 'knob1') onTabChange(TABS[(TABS.indexOf(activeTab) + TABS.length - 1) % TABS.length]);
+    else if (id === 'knob2') onTabChange(TABS[(TABS.indexOf(activeTab) + 1) % TABS.length]);
+    else if (id === 'knob3') onPower();
+    else onTabChange(TABS[Number(id.slice(5)) - 1]);
+  };
 
-    if (name.startsWith('rightknob') || name.startsWith('radio')) onRadioNext();
-    else if (name.startsWith('knob1')) onTabChange(TABS[(TABS.indexOf(activeTab) + TABS.length - 1) % TABS.length]);
-    else if (name.startsWith('knob2')) onTabChange(TABS[(TABS.indexOf(activeTab) + 1) % TABS.length]);
-    else if (name.startsWith('knob3')) onPower();
-    else {
-      const index = Number(name.slice(5, 6)) - 1;
-      if (index >= 0 && index < 4) onTabChange(TABS[index]);
-    }
+  const onHardwareClick = (event: ThreeEvent<MouseEvent>) => {
+    if (!isPhysicalCanvasEvent(event)) return;
+    const id = identifyHardware(event.object);
+    if (!id) return;
+    event.stopPropagation();
+    activateControl(id);
   };
 
   const onHardwareHover = (event: ThreeEvent<PointerEvent>) => {
-    if (event.sourceEvent?.target !== gl.domElement) return;
-    if (identifyHardware(event.object)) document.body.style.cursor = 'pointer';
+    if (!isPhysicalCanvasEvent(event)) return;
+    const id = identifyHardware(event.object);
+    if (id) {
+      document.body.style.cursor = 'pointer';
+      setHoveredControl(id);
+    }
+  };
+
+  const clearHardwareHover = () => {
+    document.body.style.cursor = '';
+    setHoveredControl(null);
   };
 
   return (
@@ -161,8 +238,43 @@ function Asset({
           object={model}
           onClick={onHardwareClick}
           onPointerOver={onHardwareHover}
-          onPointerOut={() => { document.body.style.cursor = ''; }}
+          onPointerOut={clearHardwareHover}
         />
+        {targets.map((target, index) => (
+          <mesh
+            key={target.id + '-' + index}
+            name={'hardware-hit-' + target.id}
+            position={target.center}
+            onClick={(event) => {
+              if (!isPhysicalCanvasEvent(event)) return;
+              event.stopPropagation();
+              activateControl(target.id);
+            }}
+            onPointerOver={(event) => {
+              if (!isPhysicalCanvasEvent(event)) return;
+              event.stopPropagation();
+              document.body.style.cursor = 'pointer';
+              setHoveredControl(target.id);
+            }}
+            onPointerOut={clearHardwareHover}
+          >
+            <sphereGeometry args={[target.radius, 16, 12]} />
+            <meshBasicMaterial transparent opacity={0} colorWrite={false} depthWrite={false} />
+          </mesh>
+        ))}
+        {hoveredControl && (() => {
+          const hit = targets.find((target) => target.id === hoveredControl);
+          return hit ? (
+            <Html
+              position={hit.center}
+              center
+              zIndexRange={[18, 16]}
+              style={{ pointerEvents: 'none' }}
+            >
+              <span className="pipboy-hardware-tooltip">{hit.label}</span>
+            </Html>
+          ) : null;
+        })()}
         <Html
           transform
           center
