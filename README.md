@@ -1,5 +1,15 @@
 # Pip-Boy 3000
 
+## Dial travel limits match six and five clicks (v0.11.10)
+
+- Kept the original **15° per click**, but corrected the mechanical limit—not the step size.
+- **Upper left dial:** six forward clicks (15°, 30°, 45°, 60°, 75°, 90°); the following click resets it to home. The new maximum is **90°**, not the previous 150°.
+- **Lower left dial:** five forward clicks (15°, 30°, 45°, 60°, 75°); the following click resets it to home. The new maximum is **75°**, not the previous 125°.
+- Removed the previous **+35° lower-dial home-position adjustment**, which was shifting its entire rotation arc away from the source model's resting position. The lower dial now starts from the original 3D model's authored orientation.
+- Hold-and-drag remains bounded within each dial's own arc, and reverse movement from rest still clamps to zero rather than wrapping backwards.
+- The third small POWER dial, right cosmetic dial, five physical red navigation buttons, original screen, 3D inventory, and CRT effects are unchanged.
+- Source-level click and limit checks passed. The physical fit must still be confirmed in the browser.
+
 ## Restore original knob click size (v0.11.9)
 
 - Restored the original **15° per click** for BOTH the upper and lower cosmetic knobs. The previous update accidentally increased their click size to 25°, making each reach its stop too soon.

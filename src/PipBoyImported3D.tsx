@@ -10,15 +10,15 @@ import './pipboy-imported.css';
 const MODEL_PATH = '/models/pip-boy-fallout-3-web.glb';
 const TABS: Tab[] = ['STAT', 'INV', 'DATA', 'MAP', 'RADIO'];
 
-// Preserve the original 15° click increment. Limits are independent:
-// upper 150°, lower 125°. An additional forward click after reaching
-// the stop returns that dial to its resting orientation.
+// Preserve exactly 15° per click, with 6 steps for the upper dial (90°)
+// and 5 for the lower (75°). The NEXT click after the stop resets.
+// Keep the smaller control's factory-authored resting pose: the additional
+// 35° offset made the handle sweep outside the housing.
 const DIAL_CONFIG: Partial<Record<ControlId, { maxTurn: number; clickStep: number }>> = {
-  knob1: { maxTurn: THREE.MathUtils.degToRad(150), clickStep: THREE.MathUtils.degToRad(15) },
-  knob2: { maxTurn: THREE.MathUtils.degToRad(125), clickStep: THREE.MathUtils.degToRad(15) },
+  knob1: { maxTurn: THREE.MathUtils.degToRad(90), clickStep: THREE.MathUtils.degToRad(15) },
+  knob2: { maxTurn: THREE.MathUtils.degToRad(75), clickStep: THREE.MathUtils.degToRad(15) },
   rightknob: { maxTurn: THREE.MathUtils.degToRad(150), clickStep: THREE.MathUtils.degToRad(15) },
 };
-const LOWER_DIAL_HOME_OFFSET = THREE.MathUtils.degToRad(35);
 type PowerState = 'booting' | 'ready' | 'off';
 
 type Props = {
@@ -154,15 +154,8 @@ function Asset({
       copy.updateMatrixWorld(true);
     }
 
-    // The lower left dial's original resting pose left its raised grip at
-    // an awkward angle. Re-orient its pivot ONCE in our cloned GLB, before
-    // calculating click surfaces or recording its resting rotation. That
-    // makes the revised orientation its true zero, including after reset.
-    const lowerDial = copy.getObjectByName('knob2_low_lambert1_0');
-    if (lowerDial instanceof THREE.Mesh && lowerDial.parent) {
-      lowerDial.parent.rotation.y += LOWER_DIAL_HOME_OFFSET;
-      copy.updateMatrixWorld(true);
-    }
+    // Preserve the GLB-authored lower knob orientation. No additional
+    // home-angle rotation: the previous +35° offset made its sweep unsafe.
     return copy;
   }, [scene]);
 
