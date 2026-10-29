@@ -128,11 +128,20 @@ export default function InventoryModelViewer({ itemId, itemName }: { itemId: str
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
   return (
-    <section className="inventory-viewer" aria-label={'Interactive 3D model of ' + itemName}>
-      <div className="inventory-viewer-caption">
-        <span className="inventory-viewer-live" aria-hidden="true" />
-        3D OBJECT / {itemId === 'macbook-2' ? 'M4 VISUAL' : 'INSPECTION'}
-      </div>
+    <section
+      className="inventory-viewer"
+      aria-label={'Interactive 3D model of ' + itemName}
+      // OrbitControls and the GLB's onClick should receive these events
+      // first, but they must never bubble into the outer Pip-Boy's
+      // Three.js hardware raycaster (notably its RADIO knob).
+      onPointerDown={(event) => event.stopPropagation()}
+      onPointerMove={(event) => event.stopPropagation()}
+      onPointerUp={(event) => event.stopPropagation()}
+      onPointerCancel={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
+      onDoubleClick={(event) => event.stopPropagation()}
+      onWheel={(event) => event.stopPropagation()}
+    >
       <a className="inventory-viewer-credit" href={credit.url} target="_blank" rel="noopener noreferrer"
         title={`3D model by ${credit.author}. CC BY 4.0. ${credit.modifications}. Opens the original Sketchfab model.`}>
         CREDIT ↗
@@ -144,6 +153,8 @@ export default function InventoryModelViewer({ itemId, itemName }: { itemId: str
             dpr={[1, 1.5]}
             camera={{ position: [3.7, 2.3, 5.6], fov: 37, near: 0.01, far: 120 }}
             gl={{ antialias: true, alpha: true, powerPreference: 'default' }}
+            onCreated={({ gl }) => gl.setClearColor(0x000000, 0)}
+            style={{ background: 'transparent' }}
           >
             <ambientLight intensity={1.5} />
             <hemisphereLight args={['#edf8e6', '#4c5649', 1.2]} />

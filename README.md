@@ -1,5 +1,12 @@
 # Pip-Boy 3000
 
+## Seamless in-device inventory and drag isolation (v0.11.1)
+
+- Fixed an event-bubbling bug: dragging or releasing a 3D inventory model could make the **physical radio knob behind the screen** receive a click and unexpectedly switch to RADIO. The outer hardware raycaster now accepts only pointer events originating directly on its own WebGL canvas; events from the live HTML screen (including the nested inventory canvas) cannot operate physical hardware.
+- The inventory viewer also contains its own pointer, click and wheel events while preserving inner OrbitControls, AirPods case controls and other inventory buttons.
+- Removed the inventory viewer's visible border, gradient panel background and decorative label. Its WebGL canvas now clears with **zero alpha** and floats directly on the Pip-Boy's existing CRT background. Model credits and compact interaction controls remain.
+- No new dependencies, no changes to saved data, six bundled GLBs, model licensing or camera stabilization.
+
 ## Interactive 3D inventory preview (v0.11.0)
 
 The INV detail panel now displays **real, rotatable 3D GLB models**, replacing the old static line icons for the six bundled items. Selecting a model-backed item lazy-loads that file into a small independent React Three Fiber canvas inside the existing live Pip-Boy screen; the outer 3D device and camera remain untouched.

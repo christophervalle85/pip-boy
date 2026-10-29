@@ -1,5 +1,5 @@
-/* In-device inventory viewer. A second WebGL canvas runs only while INV
-   is selected; it does not replace or reset the outer Pip-Boy camera. */
+/* Seamless, transparent in-device GLB inspector. The second WebGL canvas
+   is mounted only for INV, independent from the outer Pip-Boy camera. */
 .inventory-viewer {
   position: relative;
   display: flex;
@@ -9,23 +9,12 @@
   height: 204px;
   min-width: 0;
   margin: 5px 0 9px;
-  border: 1px solid var(--phosphor-deep);
-  background: radial-gradient(ellipse at 50% 38%, #25402488, #06160d 70%);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
   overflow: hidden;
   isolation: isolate;
-}
-.inventory-viewer-caption {
-  position: absolute;
-  top: 9px;
-  left: 11px;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--phosphor-muted);
-  font: 800 8px Consolas, 'Courier New', monospace;
-  letter-spacing: .12em;
-  pointer-events: none;
 }
 .inventory-viewer-credit {
   position: absolute;
@@ -40,18 +29,14 @@
 }
 .inventory-viewer-credit:hover,
 .inventory-viewer-credit:focus-visible { color: var(--phosphor); }
-.inventory-viewer-live {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--phosphor);
-  box-shadow: 0 0 7px var(--phosphor);
-}
 .inventory-viewer-canvas {
   position: absolute;
   inset: 0 0 37px 0;
   overflow: hidden;
+  background: transparent;
 }
+.inventory-viewer-canvas > div,
+.inventory-viewer-canvas canvas { background: transparent !important; }
 .inventory-viewer-canvas canvas {
   display: block;
   touch-action: none;
@@ -138,7 +123,6 @@
 .inventory-layout .inventory-detail-actions { flex-shrink: 0; }
 @media (max-width: 760px) {
   .inventory-viewer { height: 178px; }
-  .inventory-viewer-caption { top: 5px; left: 7px; font-size: 7px; }
   .inventory-viewer-controls { left: 5px; right: 5px; gap: 3px; }
   .inventory-viewer-controls button { font-size: 7px; padding: 3px 5px; }
   .inventory-viewer-help { font-size: 6px; }

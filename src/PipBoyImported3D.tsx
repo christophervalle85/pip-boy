@@ -120,6 +120,14 @@ function Asset({
   });
 
   const onHardwareClick = (event: ThreeEvent<MouseEvent>) => {
+    // This page has a second WebGL canvas inside the HTML screen (INV).
+    // Its pointer/click events can bubble to the outer R3F event source and
+    // accidentally hit the radio knob behind the DOM screen. Physical
+    // hardware must ONLY react to an event aimed at this outer 3D canvas.
+    // sourceEvent is the original DOM event, not the raycast target.
+    const sourceTarget = event.sourceEvent?.target;
+    if (!(sourceTarget instanceof HTMLCanvasElement) ||
+        sourceTarget.closest('.imported-live-screen')) return;
     const name = identifyHardware(event.object);
     if (!name) return;
     event.stopPropagation();
@@ -145,6 +153,9 @@ function Asset({
   };
 
   const onHardwareHover = (event: ThreeEvent<PointerEvent>) => {
+    const sourceTarget = event.sourceEvent?.target;
+    if (!(sourceTarget instanceof HTMLCanvasElement) ||
+        sourceTarget.closest('.imported-live-screen')) return;
     if (identifyHardware(event.object)) document.body.style.cursor = 'pointer';
   };
 
