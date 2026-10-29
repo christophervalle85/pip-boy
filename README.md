@@ -1,5 +1,13 @@
 # Pip-Boy 3000
 
+## Corrected physical knob limits (v0.11.7)
+
+- Fixed the dial bounds after the previous 300° wraparound caused a **reverse drag from the starting position to jump almost a full rotation backwards**.
+- The cosmetic upper/lower and side tuning dials now have a **150° forward mechanical arc**, with a hard stop at zero for reverse movement. The only wrap is a forward turn that reaches the maximum; that returns the dial to its authored starting rotation.
+- **Hold and drag** to rotate; the dial keeps its position when released. Mouse dragging is less sensitive (approximately 218px for a full arc); a click or arrow-key input moves one 15° step. Returning from the forward stop is smoothed, not an instant visual teleport.
+- Knob rotation never moves the parts backward into the casing, changes tabs, or adjusts radio. The **small POWER dial**, five physical silver-rimmed red tab buttons, CRT, camera, and 3D inventory are unchanged.
+- Rotation bounds have been checked against forward, reverse, overtravel, and reset scenarios; live browser feel still needs a visual check.
+
 ## Drag-to-turn knobs, power dial, and matching fifth bezel (v0.11.6)
 
 - The **small third dial** is once again the real POWER switch. Its brief tactile twist calls the existing device power toggle, even while the device is off.

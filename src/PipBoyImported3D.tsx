@@ -209,11 +209,17 @@ function Asset({
     }
 
     for (const [id, part] of hardware.current) {
-      // Cosmetic knobs retain their drag angle; only the max travel wraps
-      // to zero. They never translate backwards into the device shell.
+      // Knobs never translate backwards into the casing. Smoothly approach
+      // the bounded angle, including a controlled reset at the end stop.
       part.pivot.position.y = part.initialDepth;
       if (part.kind === 'dial') {
-        part.pivot.rotation.y = part.initialRotation + part.dialAngle;
+        const target = part.initialRotation + part.dialAngle;
+        part.pivot.rotation.y = THREE.MathUtils.damp(
+          part.pivot.rotation.y, target, 20, Math.min(delta, .05),
+        );
+        if (Math.abs(part.pivot.rotation.y - target) < .0005) {
+          part.pivot.rotation.y = target;
+        }
       } else {
         const pulse = part.impulse > 0 ? Math.sin((1 - part.impulse) * Math.PI) : 0;
         // Small power knob has a brief twist; red buttons have a short press.
@@ -240,13 +246,23 @@ function Asset({
     return target === gl.domElement || target === gl.domElement.parentElement;
   };
 
-  // The larger dials rotate while held and retain their position afterward.
-  // On reaching the 300° mechanical stop they wrap to the authored origin.
-  const MAX_TURN = (Math.PI * 5) / 3;
+  // Physical travel is a limited arc, not 300° or an unlimited modulo.
+  // The old formula mapped tiny reverse drags at zero to almost 300°,
+  // causing the dial to turn all the way backwards into the Pip-Boy.
+  const MAX_TURN = (Math.PI * 5) / 6; // 150°
+  const ROTATION_PER_PIXEL = .012;
+  const CLICK_STEP = Math.PI / 12; // 15°
   const rotateDial = (id: ControlId, radians: number) => {
     const part = hardware.current.get(id);
-    if (!part || part.kind !== 'dial') return;
-    part.dialAngle = (((part.dialAngle + radians) % MAX_TURN) + MAX_TURN) % MAX_TURN;
+    if (!part || part.kind !== 'dial' || !Number.isFinite(radians)) return;
+    const next = part.dialAngle + radians;
+    if (radians > 0 && next >= MAX_TURN) {
+      // Reset only at the forward stop; never wrap on a reverse turn.
+      part.dialAngle = 0;
+    } else {
+      // Clamp reverse motion to the true starting position.
+      part.dialAngle = THREE.MathUtils.clamp(next, 0, MAX_TURN);
+    }
   };
 
   const activateControl = (id: ControlId) => {
@@ -265,7 +281,7 @@ function Asset({
       if (tab) onTabChange(tab);
     } else {
       // A click makes one tactile notch; drag for free rotation.
-      rotateDial(id, Math.PI / 6);
+      rotateDial(id, CLICK_STEP);
     }
   };
 
@@ -286,7 +302,7 @@ function Asset({
     current.lastY = event.clientY;
     if (Math.abs(dx) + Math.abs(dy) < 0.1) return;
     current.dragged = true;
-    rotateDial(current.id, (dx - dy * .35) * .024);
+    rotateDial(current.id, (dx - dy * .35) * ROTATION_PER_PIXEL);
   };
 
   const finishDialDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -376,11 +392,11 @@ function Asset({
                 if (target.id.startsWith('light') || target.id === 'knob3') return;
                 if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
                   event.preventDefault();
-                  rotateDial(target.id, Math.PI / 12);
+                  rotateDial(target.id, CLICK_STEP);
                 }
                 if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
                   event.preventDefault();
-                  rotateDial(target.id, -Math.PI / 12);
+                  rotateDial(target.id, -CLICK_STEP);
                 }
               }}
             >
