@@ -1,5 +1,14 @@
 # Pip-Boy 3000
 
+## True hold-to-drag inventory rotation (v0.11.2)
+
+The previous radio-switching fix stopped every pointer event on the inventory preview wrapper. That also prevented the nested Three.js OrbitControls from receiving the release event, resulting in a sticky click-to-drag interaction.
+
+- Removed pointer-event blockers from the **inventory viewer** so users **press and hold** the left mouse button to rotate a model, then **release** to stop controlling it. Trackpad and touch gestures can use the same native orbit controls.
+- Kept accidental hardware activation fixed by checking `event.sourceEvent.target === gl.domElement` for **both click and hover** handlers on the physical Pip-Boy; events from the transparent inventory canvas cannot operate the radio dial or other hardware.
+- Preserved the transparent, borderless 3D presentation, AirPods lid animation, reset, zoom and optional auto-spin.
+- No changes to model files, dependencies, saves, or screen boot.
+
 ## Seamless in-device inventory and drag isolation (v0.11.1)
 
 - Fixed an event-bubbling bug: dragging or releasing a 3D inventory model could make the **physical radio knob behind the screen** receive a click and unexpectedly switch to RADIO. The outer hardware raycaster now accepts only pointer events originating directly on its own WebGL canvas; events from the live HTML screen (including the nested inventory canvas) cannot operate physical hardware.

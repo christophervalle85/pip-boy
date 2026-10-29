@@ -47,6 +47,7 @@ function Asset({
   display, activeTab, onTabChange, onRadioNext, onPower, powerState,
 }: Pick<Props, 'display' | 'activeTab' | 'onTabChange' | 'onRadioNext' | 'onPower' | 'powerState'>) {
   const { scene } = useGLTF(MODEL_PATH);
+  const { gl } = useThree();
   const [screenFacing, setScreenFacing] = useState(true);
   const lastFacing = useRef(true);
   const hardware = useRef<Map<string, HardwarePart>>(new Map());
@@ -120,14 +121,10 @@ function Asset({
   });
 
   const onHardwareClick = (event: ThreeEvent<MouseEvent>) => {
-    // This page has a second WebGL canvas inside the HTML screen (INV).
-    // Its pointer/click events can bubble to the outer R3F event source and
-    // accidentally hit the radio knob behind the DOM screen. Physical
-    // hardware must ONLY react to an event aimed at this outer 3D canvas.
-    // sourceEvent is the original DOM event, not the raycast target.
-    const sourceTarget = event.sourceEvent?.target;
-    if (!(sourceTarget instanceof HTMLCanvasElement) ||
-        sourceTarget.closest('.imported-live-screen')) return;
+    // R3F can receive events bubbling from the inner INV canvas via the
+    // Drei Html overlay. Only a real click on THIS canvas may operate
+    // physical hardware, never a click from the nested viewer or CRT UI.
+    if (event.sourceEvent?.target !== gl.domElement) return;
     const name = identifyHardware(event.object);
     if (!name) return;
     event.stopPropagation();
@@ -153,9 +150,7 @@ function Asset({
   };
 
   const onHardwareHover = (event: ThreeEvent<PointerEvent>) => {
-    const sourceTarget = event.sourceEvent?.target;
-    if (!(sourceTarget instanceof HTMLCanvasElement) ||
-        sourceTarget.closest('.imported-live-screen')) return;
+    if (event.sourceEvent?.target !== gl.domElement) return;
     if (identifyHardware(event.object)) document.body.style.cursor = 'pointer';
   };
 

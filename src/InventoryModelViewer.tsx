@@ -127,20 +127,14 @@ export default function InventoryModelViewer({ itemId, itemName }: { itemId: str
   const reducedMotion = typeof window !== 'undefined' &&
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
+  // Keep native pointer events flowing so OrbitControls sees both
+  // pointerdown and pointerup (including document-level release listeners).
+  // The previous wrapper-level stopPropagation left rotation "stuck" after
+  // mouse release. The outer hardware now checks the originating canvas.
   return (
     <section
       className="inventory-viewer"
       aria-label={'Interactive 3D model of ' + itemName}
-      // OrbitControls and the GLB's onClick should receive these events
-      // first, but they must never bubble into the outer Pip-Boy's
-      // Three.js hardware raycaster (notably its RADIO knob).
-      onPointerDown={(event) => event.stopPropagation()}
-      onPointerMove={(event) => event.stopPropagation()}
-      onPointerUp={(event) => event.stopPropagation()}
-      onPointerCancel={(event) => event.stopPropagation()}
-      onClick={(event) => event.stopPropagation()}
-      onDoubleClick={(event) => event.stopPropagation()}
-      onWheel={(event) => event.stopPropagation()}
     >
       <a className="inventory-viewer-credit" href={credit.url} target="_blank" rel="noopener noreferrer"
         title={`3D model by ${credit.author}. CC BY 4.0. ${credit.modifications}. Opens the original Sketchfab model.`}>
