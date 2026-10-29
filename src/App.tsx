@@ -379,6 +379,7 @@ export default function App() {
           display={display}
           activeTab={tab}
           onTabChange={changeTab}
+          onPower={togglePower}
           powerState={powerState}
           amber={amber}
           stabilized={stabilized}

@@ -1,5 +1,14 @@
 # Pip-Boy 3000
 
+## Drag-to-turn knobs, power dial, and matching fifth bezel (v0.11.6)
+
+- The **small third dial** is once again the real POWER switch. Its brief tactile twist calls the existing device power toggle, even while the device is off.
+- The **two large left knobs** and the right-side tuner are cosmetic, with genuine pointer-captured **hold-and-drag rotation** rather than a single click that springs back. Drag to adjust freely; releasing the pointer keeps that orientation. Each dial wraps to its original rotation only after reaching the 300° mechanical maximum (also supports keyboard arrow-key nudges and click-to-turn).
+- No knob changes tabs or tunes stations. Only the existing **five red buttons** select STAT, INV, DATA, MAP and RADIO.
+- The fifth red button now clones **two real source GLB components**: the red `light4_low` lens **and the separate textured silver `Rim4_low` ring**, each offset by the same inter-button spacing, so the new hardware has the same original metallic border and materials.
+- No green hover outline; descriptive labels still appear above the physical controls.
+- Native 3D screen, embedded inventory drag/zoom, audio, CRT, and saved state remain unchanged. No dependencies added; live browser appearance still requires visual verification.
+
 ## Five red buttons and cosmetic spring-return knobs (v0.11.5)
 
 - Removed the glowing green hover/focus outline and background from all physical hardware hit areas. The **small descriptive label above the control still appears on hover or keyboard focus**.

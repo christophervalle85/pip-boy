@@ -266,6 +266,15 @@
 .pipboy-hardware-target.is-knob {
   border-radius: 26%;
 }
+.pipboy-hardware-target.is-dial {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.pipboy-hardware-target.is-dial:active {
+  cursor: grabbing;
+}
 .pipboy-hardware-target:disabled {
   cursor: default;
   opacity: 1;

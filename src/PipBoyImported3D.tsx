@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef, useState, type ElementRef, type ReactNode, type RefObject } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState, type ElementRef, type ReactNode, type RefObject, type PointerEvent as ReactPointerEvent } from 'react';
 import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
 import { Html, OrbitControls, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
@@ -15,6 +15,7 @@ type Props = {
   display: ReactNode;
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
+  onPower: () => void;
   powerState: PowerState;
   amber: boolean;
   stabilized: boolean;
@@ -29,8 +30,9 @@ type HardwarePart = {
   mesh: THREE.Mesh;
   initialDepth: number;
   initialRotation: number;
+  dialAngle: number;
   impulse: number;
-  kind: 'dial' | 'button';
+  kind: 'dial' | 'power' | 'button';
 };
 
 type HardwareTarget = {
@@ -45,10 +47,10 @@ type HardwareTarget = {
 // Html distanceFactor 400 / scale .00351: ~285 CSS px per GLB model unit.
 // Target rectangles are slightly larger than the visible mesh, for usability.
 const CONTROLS: ReadonlyArray<{ id: ControlId; label: string; width: number; height: number }> = [
-  { id: 'knob1', label: 'UPPER DIAL · COSMETIC', width: 255, height: 205 },
-  { id: 'knob2', label: 'LOWER DIAL · COSMETIC', width: 158, height: 165 },
-  { id: 'knob3', label: 'DIAL · COSMETIC', width: 107, height: 107 },
-  { id: 'rightknob', label: 'RIGHT DIAL · COSMETIC', width: 92, height: 405 },
+  { id: 'knob1', label: 'TURN UPPER DIAL', width: 255, height: 205 },
+  { id: 'knob2', label: 'TURN LOWER DIAL', width: 158, height: 165 },
+  { id: 'knob3', label: 'POWER', width: 107, height: 107 },
+  { id: 'rightknob', label: 'TURN RIGHT DIAL', width: 92, height: 405 },
   { id: 'light1', label: 'STAT', width: 77, height: 77 },
   { id: 'light2', label: 'INVENTORY', width: 77, height: 77 },
   { id: 'light3', label: 'DATA', width: 77, height: 77 },
@@ -72,13 +74,15 @@ function identifyHardware(object: THREE.Object3D): ControlId | null {
 }
 
 function Asset({
-  display, activeTab, onTabChange, powerState,
-}: Pick<Props, 'display' | 'activeTab' | 'onTabChange' | 'powerState'>) {
+  display, activeTab, onTabChange, onPower, powerState,
+}: Pick<Props, 'display' | 'activeTab' | 'onTabChange' | 'onPower' | 'powerState'>) {
   const { scene } = useGLTF(MODEL_PATH);
   const { gl } = useThree();
   const [screenFacing, setScreenFacing] = useState(true);
   const lastFacing = useRef(true);
   const hardware = useRef<Map<ControlId, HardwarePart>>(new Map());
+  const drag = useRef<{ id: ControlId; pointerId: number; lastX: number; lastY: number; dragged: boolean } | null>(null);
+  const suppressNextClick = useRef(false);
 
   const model = useMemo(() => {
     const copy = scene.clone(true);
@@ -124,6 +128,19 @@ function Asset({
       if (lens.material instanceof THREE.MeshStandardMaterial) lens.material = lens.material.clone();
       pivot.add(lens);
       container.add(pivot);
+
+      // The silver ring is a SEPARATE GLB mesh (Rim4_low), not part of
+      // light4. Clone the complete rim subtree and use the same spacing.
+      const rim4 = copy.getObjectByName('Rim4_low');
+      if (rim4 && rim4.parent === container) {
+        const rim5 = rim4.clone(true);
+        rim5.name = 'Rim5_low';
+        rim5.traverse((node) => {
+          if (node instanceof THREE.Mesh) node.name = 'Rim5_low_lambert1_0';
+        });
+        rim5.position.add(step);
+        container.add(rim5);
+      }
       copy.updateMatrixWorld(true);
     }
     return copy;
@@ -171,8 +188,9 @@ function Asset({
         mesh: node,
         initialDepth: pivot.position.y,
         initialRotation: pivot.rotation.y,
+        dialAngle: 0,
         impulse: 0,
-        kind: id.startsWith('light') ? 'button' : 'dial',
+        kind: id.startsWith('light') ? 'button' : id === 'knob3' ? 'power' : 'dial',
       });
     });
     hardware.current = parts;
@@ -191,20 +209,18 @@ function Asset({
     }
 
     for (const [id, part] of hardware.current) {
-      // A single short impulse: up to 18 degrees, then back to the exact
-      // authored resting rotation. Never accumulate a full turn or translate
-      // the cosmetic knobs backwards into the shell.
-      const phase = 1 - part.impulse;
-      const pulse = part.impulse > 0 ? Math.sin(phase * Math.PI) : 0;
+      // Cosmetic knobs retain their drag angle; only the max travel wraps
+      // to zero. They never translate backwards into the device shell.
+      part.pivot.position.y = part.initialDepth;
       if (part.kind === 'dial') {
-        part.pivot.rotation.y = part.initialRotation + Math.max(0, pulse) * (Math.PI / 10);
-        part.pivot.position.y = part.initialDepth;
+        part.pivot.rotation.y = part.initialRotation + part.dialAngle;
       } else {
-        part.pivot.rotation.y = part.initialRotation;
-        // Buttons depress briefly; unlike knobs they physically push in.
-        part.pivot.position.y = part.initialDepth - Math.max(0, pulse) * 1.6;
+        const pulse = part.impulse > 0 ? Math.sin((1 - part.impulse) * Math.PI) : 0;
+        // Small power knob has a brief twist; red buttons have a short press.
+        part.pivot.rotation.y = part.initialRotation + (part.kind === 'power' ? pulse * .35 : 0);
+        if (part.kind === 'button') part.pivot.position.y = part.initialDepth - pulse * 1.6;
+        part.impulse = Math.max(0, part.impulse - Math.min(delta, .05) * 2.3);
       }
-      part.impulse = Math.max(0, part.impulse - Math.min(delta, 0.05) * 2.25);
       if (part.kind === 'button' && part.mesh.material instanceof THREE.MeshStandardMaterial) {
         const buttonNumber = Number(id.slice(5, 6));
         const lit = powerState === 'ready' && TABS[buttonNumber - 1] === activeTab;
@@ -224,14 +240,62 @@ function Asset({
     return target === gl.domElement || target === gl.domElement.parentElement;
   };
 
-  const activateControl = (id: ControlId) => {
-    if (powerState !== 'ready') return;
+  // The larger dials rotate while held and retain their position afterward.
+  // On reaching the 300° mechanical stop they wrap to the authored origin.
+  const MAX_TURN = (Math.PI * 5) / 3;
+  const rotateDial = (id: ControlId, radians: number) => {
     const part = hardware.current.get(id);
-    if (part) part.impulse = 1;
-    // Every physical dial is cosmetic. Only the five red buttons navigate.
+    if (!part || part.kind !== 'dial') return;
+    part.dialAngle = (((part.dialAngle + radians) % MAX_TURN) + MAX_TURN) % MAX_TURN;
+  };
+
+  const activateControl = (id: ControlId) => {
+    if (id === 'knob3') {
+      if (powerState === 'booting') return;
+      const part = hardware.current.get(id);
+      if (part) part.impulse = 1;
+      onPower();
+      return;
+    }
+    if (powerState !== 'ready') return;
     if (id.startsWith('light')) {
+      const part = hardware.current.get(id);
+      if (part) part.impulse = 1;
       const tab = TABS[Number(id.slice(5)) - 1];
       if (tab) onTabChange(tab);
+    } else {
+      // A click makes one tactile notch; drag for free rotation.
+      rotateDial(id, Math.PI / 6);
+    }
+  };
+
+  const startDialDrag = (id: ControlId, event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (id.startsWith('light') || id === 'knob3' || powerState !== 'ready') return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    drag.current = { id, pointerId: event.pointerId, lastX: event.clientX, lastY: event.clientY, dragged: false };
+    suppressNextClick.current = false;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const moveDialDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const current = drag.current;
+    if (!current || current.pointerId !== event.pointerId) return;
+    const dx = event.clientX - current.lastX;
+    const dy = event.clientY - current.lastY;
+    current.lastX = event.clientX;
+    current.lastY = event.clientY;
+    if (Math.abs(dx) + Math.abs(dy) < 0.1) return;
+    current.dragged = true;
+    rotateDial(current.id, (dx - dy * .35) * .024);
+  };
+
+  const finishDialDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const current = drag.current;
+    if (!current || current.pointerId !== event.pointerId) return;
+    suppressNextClick.current = current.dragged;
+    drag.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
     }
   };
 
@@ -281,15 +345,43 @@ function Asset({
           >
             <button
               type="button"
-              className={'pipboy-hardware-target' + (target.id.startsWith('light') ? ' is-button' : ' is-knob')}
+              className={'pipboy-hardware-target' + (target.id.startsWith('light') ? ' is-button' : target.id === 'knob3' ? ' is-knob is-power' : ' is-knob is-dial')}
               aria-label={target.label + ' — physical Pip-Boy control'}
               title={target.label}
-              disabled={powerState !== 'ready'}
-              onPointerDown={(event) => event.stopPropagation()}
-              onPointerUp={(event) => event.stopPropagation()}
+              disabled={powerState === 'booting' || (powerState !== 'ready' && target.id !== 'knob3')}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                startDialDrag(target.id, event);
+              }}
+              onPointerMove={(event) => {
+                if (drag.current?.pointerId === event.pointerId) {
+                  event.stopPropagation();
+                  moveDialDrag(event);
+                }
+              }}
+              onPointerUp={(event) => {
+                event.stopPropagation();
+                finishDialDrag(event);
+              }}
+              onPointerCancel={(event) => finishDialDrag(event)}
               onClick={(event) => {
                 event.stopPropagation();
+                if (suppressNextClick.current) {
+                  suppressNextClick.current = false;
+                  return;
+                }
                 activateControl(target.id);
+              }}
+              onKeyDown={(event) => {
+                if (target.id.startsWith('light') || target.id === 'knob3') return;
+                if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+                  event.preventDefault();
+                  rotateDial(target.id, Math.PI / 12);
+                }
+                if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
+                  event.preventDefault();
+                  rotateDial(target.id, -Math.PI / 12);
+                }
               }}
             >
               <span className="pipboy-hardware-label" aria-hidden="true">{target.label}</span>
@@ -439,7 +531,7 @@ function CameraMotion({
 }
 
 function LoadedScene({
-  display, activeTab, onTabChange, powerState, resetToken, stabilized,
+  display, activeTab, onTabChange, onPower, powerState, resetToken, stabilized,
 }: Props & { resetToken: number }) {
   const controlsRef = useRef<OrbitInstance>(null);
   const [animating, setAnimating] = useState(false);
@@ -457,7 +549,7 @@ function LoadedScene({
       <directionalLight position={[6, 3, -5]} color="#a2c497" intensity={2} />
       <pointLight position={[4, -3, 6]} color="#9ec5a1" intensity={14} distance={30} />
       <Suspense fallback={<Html center><div className="asset-loading">LOADING TEXTURED PIP-BOY…</div></Html>}>
-        <Asset display={display} activeTab={activeTab} onTabChange={onTabChange} powerState={powerState} />
+        <Asset display={display} activeTab={activeTab} onTabChange={onTabChange} onPower={onPower} powerState={powerState} />
       </Suspense>
       <OrbitControls
         ref={controlsRef}
