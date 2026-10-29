@@ -1,5 +1,13 @@
 # Pip-Boy 3000
 
+## Restore original knob click size (v0.11.9)
+
+- Restored the original **15° per click** for BOTH the upper and lower cosmetic knobs. The previous update accidentally increased their click size to 25°, making each reach its stop too soon.
+- Kept the existing independent travel limits: upper **150°** (10 clicks to the stop, reset on click 11); lower **125°** (9 clicks to the stop, reset on click 10). These are *actual* limits, not larger click increments.
+- Fixed an off-by-one boundary issue: the last step of a knob is clamped to its mechanical end stop, rather than instantly resetting when a 15° increment would overshoot it. Only a further forward click after reaching the stop returns to home.
+- The lower dial's improved **35° resting orientation**, click/drag interactions, small physical POWER dial, five silver-rimmed red navigation buttons, inventory, and CRT remain unchanged.
+- Both dials were checked for every click through their stops and reset, including reverse motion from zero.
+
 ## Tuned upper/lower dial detents and lower home position (v0.11.8)
 
 - The **upper-left dial** now advances **25° per click**, reaches its 150° mechanical end stop after **six** clicks, and resets to its zero position on the **seventh** forward click.

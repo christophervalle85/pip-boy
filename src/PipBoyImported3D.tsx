@@ -10,12 +10,12 @@ import './pipboy-imported.css';
 const MODEL_PATH = '/models/pip-boy-fallout-3-web.glb';
 const TABS: Tab[] = ['STAT', 'INV', 'DATA', 'MAP', 'RADIO'];
 
-// Each knob has its own calibrated range and detents. Six full clicks get
-// the upper knob to its stop; five get the lower knob to its stop. The
-// NEXT forward click returns it to its home position.
+// Preserve the original 15° click increment. Limits are independent:
+// upper 150°, lower 125°. An additional forward click after reaching
+// the stop returns that dial to its resting orientation.
 const DIAL_CONFIG: Partial<Record<ControlId, { maxTurn: number; clickStep: number }>> = {
-  knob1: { maxTurn: THREE.MathUtils.degToRad(150), clickStep: THREE.MathUtils.degToRad(25) },
-  knob2: { maxTurn: THREE.MathUtils.degToRad(125), clickStep: THREE.MathUtils.degToRad(25) },
+  knob1: { maxTurn: THREE.MathUtils.degToRad(150), clickStep: THREE.MathUtils.degToRad(15) },
+  knob2: { maxTurn: THREE.MathUtils.degToRad(125), clickStep: THREE.MathUtils.degToRad(15) },
   rightknob: { maxTurn: THREE.MathUtils.degToRad(150), clickStep: THREE.MathUtils.degToRad(15) },
 };
 const LOWER_DIAL_HOME_OFFSET = THREE.MathUtils.degToRad(35);
@@ -275,8 +275,10 @@ function Asset({
     const config = DIAL_CONFIG[id];
     if (!part || part.kind !== 'dial' || !config || !Number.isFinite(radians)) return;
     const next = part.dialAngle + radians;
-    if (radians > 0 && next > config.maxTurn + 0.00001) {
-      // One more click/forward turn *after* the stop resets the dial.
+    if (radians > 0 && part.dialAngle >= config.maxTurn - 0.00001) {
+      // Reset only if already AT the end stop before this movement.
+      // A step that overshoots (e.g. 120° + 15° at the 125° lower
+      // limit) must land on the stop rather than skipping over it.
       part.dialAngle = 0;
     } else {
       part.dialAngle = THREE.MathUtils.clamp(next, 0, config.maxTurn);
