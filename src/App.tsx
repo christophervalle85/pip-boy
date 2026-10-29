@@ -13,6 +13,7 @@ import NYCMap from './NYCMap';
 import InventoryEditor from './InventoryEditor';
 import PipBoyImported3D from './PipBoyImported3D';
 import WandererMascot from './WandererMascot';
+import InventoryModelViewer, { inventoryHas3DModel } from './InventoryModelViewer';
 import { useDeviceAudio } from './device-audio';
 import './device-effects.css';
 
@@ -313,7 +314,11 @@ export default function App() {
                     {currentItem ? (
                       <section className="detail-pane">
                         <span className="eyebrow">PERSONAL LOADOUT / {currentItem.category}</span>
-                        <div className="item-illustration" aria-hidden="true"><InventoryIcon item={currentItem} /></div>
+                        {inventoryHas3DModel(currentItem.id) ? (
+                          <InventoryModelViewer key={currentItem.id} itemId={currentItem.id} itemName={currentItem.name} />
+                        ) : (
+                          <div className="item-illustration" aria-hidden="true"><InventoryIcon item={currentItem} /></div>
+                        )}
                         <h2>{currentItem.name}</h2>
                         <div className="item-stat">{currentItem.stat}</div>
                         <p>{currentItem.description}</p>

@@ -1,0 +1,148 @@
+/* In-device inventory viewer. A second WebGL canvas runs only while INV
+   is selected; it does not replace or reset the outer Pip-Boy camera. */
+.inventory-viewer {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  width: 100%;
+  height: 204px;
+  min-width: 0;
+  margin: 5px 0 9px;
+  border: 1px solid var(--phosphor-deep);
+  background: radial-gradient(ellipse at 50% 38%, #25402488, #06160d 70%);
+  overflow: hidden;
+  isolation: isolate;
+}
+.inventory-viewer-caption {
+  position: absolute;
+  top: 9px;
+  left: 11px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--phosphor-muted);
+  font: 800 8px Consolas, 'Courier New', monospace;
+  letter-spacing: .12em;
+  pointer-events: none;
+}
+.inventory-viewer-credit {
+  position: absolute;
+  top: 7px;
+  right: 9px;
+  z-index: 3;
+  color: var(--phosphor-muted);
+  font: 800 7px Consolas, monospace;
+  letter-spacing: .06em;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.inventory-viewer-credit:hover,
+.inventory-viewer-credit:focus-visible { color: var(--phosphor); }
+.inventory-viewer-live {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--phosphor);
+  box-shadow: 0 0 7px var(--phosphor);
+}
+.inventory-viewer-canvas {
+  position: absolute;
+  inset: 0 0 37px 0;
+  overflow: hidden;
+}
+.inventory-viewer-canvas canvas {
+  display: block;
+  touch-action: none;
+  cursor: grab;
+}
+.inventory-viewer-canvas canvas:active { cursor: grabbing; }
+.inventory-viewer-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  justify-content: flex-start;
+  position: absolute;
+  z-index: 3;
+  bottom: 18px;
+  left: 8px;
+  right: 8px;
+}
+.inventory-viewer-controls button {
+  min-height: 22px;
+  padding: 4px 8px;
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--phosphor-dim);
+  background: #0b2214ed;
+  color: var(--phosphor);
+  white-space: nowrap;
+  font: 800 8px/1.15 Consolas, 'Courier New', monospace;
+  letter-spacing: .02em;
+}
+.inventory-viewer-controls button:hover,
+.inventory-viewer-controls button:focus-visible {
+  color: var(--screen-bg);
+  border-color: var(--phosphor);
+  background: var(--phosphor);
+}
+.inventory-viewer-controls button:disabled { opacity: .3; }
+.inventory-viewer-controls .inventory-viewer-primary {
+  background: var(--phosphor);
+  color: var(--screen-bg);
+}
+.inventory-viewer-controls .inventory-viewer-primary:hover { filter: brightness(1.22); }
+.inventory-viewer-help {
+  position: absolute;
+  bottom: 5px;
+  right: 9px;
+  color: var(--phosphor-muted);
+  font: 7px Consolas, monospace;
+  letter-spacing: .09em;
+  opacity: .8;
+  pointer-events: none;
+}
+.inventory-model-status {
+  white-space: nowrap;
+  padding: 9px 14px;
+  border: 1px solid var(--phosphor-deep);
+  color: var(--phosphor);
+  background: #06170ddd;
+  font: 800 9px Consolas, monospace;
+  letter-spacing: .04em;
+}
+.inventory-viewer-error {
+  height: 100%;
+  padding: 32px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
+  color: var(--phosphor);
+  text-align: center;
+  font: 10px/1.4 Consolas, monospace;
+}
+.inventory-viewer-error span { color: var(--phosphor-muted); }
+.inventory-viewer-error strong { font-size: 10px; }
+/* Give the 3D thumbnail room without pushing item controls out of the CRT.
+   Keep all screen content contained inside the pre-existing 900 × 648 display. */
+.inventory-layout .detail-pane { overflow: hidden; }
+.inventory-layout .detail-pane > h2 { flex: 0 0 auto; margin: 3px 0 5px; }
+.inventory-layout .detail-pane > .item-stat { flex: 0 0 auto; }
+.inventory-layout .detail-pane > p { margin: 7px 0; line-height: 1.5; }
+.inventory-layout .detail-stats { margin-top: auto; }
+.inventory-layout .inventory-detail-actions { flex-shrink: 0; }
+@media (max-width: 760px) {
+  .inventory-viewer { height: 178px; }
+  .inventory-viewer-caption { top: 5px; left: 7px; font-size: 7px; }
+  .inventory-viewer-controls { left: 5px; right: 5px; gap: 3px; }
+  .inventory-viewer-controls button { font-size: 7px; padding: 3px 5px; }
+  .inventory-viewer-help { font-size: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .inventory-viewer-controls button { transition: none; }
+}

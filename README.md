@@ -1,5 +1,19 @@
 # Pip-Boy 3000
 
+## Interactive 3D inventory preview (v0.11.0)
+
+The INV detail panel now displays **real, rotatable 3D GLB models**, replacing the old static line icons for the six bundled items. Selecting a model-backed item lazy-loads that file into a small independent React Three Fiber canvas inside the existing live Pip-Boy screen; the outer 3D device and camera remain untouched.
+
+- **M2 Midnight / M4 Silver:** show distinct uploaded, recolored GLB assets. The M4 is currently a silver **M2-geometry visual placeholder**.
+- **Wallet, car keys, house key:** display their real uploaded meshes (wallet black; both keys unchanged).
+- **AirPods Pro:** **OPEN CASE / CLOSE CASE** plays the uploaded model's actual lid + earbuds animation. Clicking the model also toggles it.
+- **All six:** drag to orbit, wheel/trackpad to zoom, **RESET** camera, optional **AUTO SPIN** (disabled under reduced-motion preferences).
+- A clear 3D loading or error state appears instead of a silent missing object. User-created inventory entries without a model keep the original icon.
+- Models are loaded only when a corresponding item is selected on INV; the AirPods source is still automatically restored from its versioned gzip archive by the existing npm predev/prebuild script.
+- The existing inventory list, category filters, edit/delete, quests, camera stabilization, sound preferences, CRT screen and screen boot remain unchanged.
+
+After pulling, restart the dev server with `npm run dev` to ensure the AirPods asset preparation script runs, then open **INV**. The browser must support WebGL.
+
 ## Versioned 3D inventory assets (v0.10.3)
 
 The six prepared inventory models are now stored directly in this repository under `public/models/inventory/`; **you no longer need to download the ZIP or install the models manually**.

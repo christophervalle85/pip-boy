@@ -1,14 +1,16 @@
-# Future feature: 3D everyday-carry inventory
+# 3D everyday-carry inventory
 
-## Interactive AirPods case (planned, not yet implemented)
+## Interactive AirPods case (basic open/close implemented in v0.11.0)
 
-The AirPods item in **INV** should open a dedicated interactive 3D item-inspection surface. Keep the existing list, filtering, and editor for all items intact.
+The **INV** detail pane now loads real interactive 3D models for six bundled items. The AirPods GLB's original lid-and-earbuds animation is controlled by an OPEN CASE / CLOSE CASE button. The inventory list, filters, editor and saved game remain intact.
 
-### User experience
+A **future enhancement** is a larger dedicated inspect mode with independent click-to-lift controls for each earbud; the current GLB groups the earbuds under one animated node, so independent left/right handling would require editing the source model.
 
-1. Select **AirPods** from the inventory and open **INSPECT 3D**.
+### Next phase user experience
+
+1. Select **AirPods** from the inventory and expand the existing 3D preview into a dedicated **INSPECT 3D** view.
 2. A lightweight white AirPods charging case appears in a dark green Pip-Boy inspection viewport, with a simple orbit/zoom and reset control.
-3. Click **OPEN CASE** or the lid to rotate it around a real hinge pivot, revealing **two separate earbuds inside**. Click again to close.
+3. Preserve the working case OPEN/CLOSE animation and add an expanded detail view.
 4. Clicking either earbud selects it, subtly lifts it out, and reveals its label/details; clicking again returns it. Preserve positions when inspecting, and provide **RESET ITEM**.
 5. Allow the 3D inspect panel to close without losing the selected inventory item, description, quantity or persisted inventory data.
 
